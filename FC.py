@@ -101,10 +101,10 @@ def makeFC(label_dir):
     subj_list = pd.read_csv(label_dir).iloc[:,0]
     for subjnum in subj_list:
         # rsimg -> (resting state) fmri image 경로 입력
-        rsimg = nib.load(f'../UCLA_CNP/subject/derivatives/{subjnum}/func/{subjnum}_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz')
+        rsimg = nib.load(f'Z:\MRI\UCLA_CNP\preprocess\fmriprep\derivatives/{subjnum}/func/{subjnum}_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz')
 
         # maskimg -> rsimg에 해당하는 brain mask 경로 입력
-        maskimg = nib.load(f'../UCLA_CNP/subject/derivatives/{subjnum}/func/{subjnum}_task-rest_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz')
+        maskimg = nib.load(f'Z:\MRI\UCLA_CNP\preprocess\fmriprep\derivatives/{subjnum}/func/{subjnum}_task-rest_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz')
 
         # connectivity matrix calculation
         conndf, connmat, time_series, reginparc = extract_mat(rsimg, maskimg, labelimg, conntype='correlation', space='data', savets=False, nomat=False, dtr=False, stdz=False)
@@ -112,5 +112,5 @@ def makeFC(label_dir):
         # connmat -> functional connectivity matrix 생성된 결과
         np.save(f'FC/Schaefer2018_400Parcels_17Networks_FSLMNI152_1mm/FC_{subjnum}.npy',conndf)
 
-#label_dir = 'data/UCLA_CNP_Labels_400parcel.csv'
-#makeFC(label_dir)
+label_dir = 'CNP_phenotype.csv'
+makeFC(label_dir)
