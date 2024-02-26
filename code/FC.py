@@ -110,7 +110,7 @@ def makeFC(label_dir):
         conndf, connmat, time_series, reginparc = extract_mat(rsimg, maskimg, labelimg, conntype='correlation', space='data', savets=False, nomat=False, dtr=False, stdz=False)
 
         # connmat -> functional connectivity matrix 생성된 결과
-        np.save(f'FC/Schaefer2018_400Parcels_17Networks_FSLMNI152_1mm/FC_{subjnum}.npy',conndf)
+        np.save(f'FC/Schaefer2018_400Parcels_17Networks_FSLMNI152_1mm/FC400_{subjnum}.npy',conndf)
 
 label_dir = 'CNP_phenotype.csv'
 makeFC(label_dir)

@@ -10,8 +10,7 @@ from utils import compute_KNN_graph
 class FCGraphDataset(InMemoryDataset):
     """
     preprocessed fMRI data (by fmriprep)
-    -> FC
-    -> dataset(feature matrix(x), adjancency matrix(edge_index), edge_attribute, y(label))
+    -> FC -> dataset(feature matrix(x), adjancency matrix(edge_index), edge_attribute, y(label))
     """
     def __init__(self, root, transform=None, pre_transform=None, pre_filter=None):
         super().__init__(root, transform, pre_transform, pre_filter)
@@ -28,7 +27,7 @@ class FCGraphDataset(InMemoryDataset):
         return ['data.pt']
 
     def process(self):
-        self.labels = pd.read_csv(Path(self.raw_dir)/'UCLA_CNP_Labels_400parcel.csv').loc[:75,'diagnosis']
+        self.labels = pd.read_csv(Path(self.raw_dir)/'Labels.csv').loc[:,'diagnosis']
         self.labels = self.labels.map({'CONTROL' : 0, 'SCHZ' : 1}).values
 
         data_list=[]
