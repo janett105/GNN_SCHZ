@@ -149,6 +149,6 @@ print('Average Sensitivity: %.4f+-%.4f' % (eval_metrics[:, 0].mean(), eval_metri
 print('Average Specificity: %.4f+-%.4f' % (eval_metrics[:, 1].mean(), eval_metrics[:, 1].std()))
 print('Average Balanced Accuracy: %.4f+-%.4f' % (eval_metrics[:, 2].mean(), eval_metrics[:, 2].std()))
 # {n_fold+1} fold의 각 epoch에서의 [best val threshold, best val threshold]
-print(thresholds)
+#print(thresholds)
 
 sys.stdout.close()

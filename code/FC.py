@@ -101,7 +101,7 @@ def makeFC(label_dir):
     subj_list = pd.read_csv(label_dir).iloc[:,0]
     for subjnum in subj_list:
         # rsimg -> (resting state) fmri image 경로 입력
-        rsimg = nib.load(f'/mnt/z/MRI/UCLA_CNP/preprocess/fmriprep/derivatives/{subjnum}/func/{subjnum}_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz')
+        rsimg = nib.load(f'/z/MRI/UCLA_CNP/preprocess/fmriprep/derivatives/{subjnum}/func/{subjnum}_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz')
 
         # maskimg -> rsimg에 해당하는 brain mask 경로 입력
         maskimg = nib.load(f'/mnt/z/MRI/UCLA_CNP/preprocess/fmriprep/derivatives/{subjnum}/func/{subjnum}_task-rest_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz')
