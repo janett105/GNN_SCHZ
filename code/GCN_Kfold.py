@@ -16,7 +16,8 @@ from Dataset import FCGraphDataset
 from ROC_AUC import ROC_threshold
 from vizGraph import viz_graph
 
-name = 'data0_400parcel_'
+# dataset + parcels + combat 
+name = 'data0_164parcel_'
 
 n_splits = 10 # n fold CV
 n_metrics = 3 # balanced accuracy, 
@@ -30,9 +31,9 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 dataset = FCGraphDataset('data')
 skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=0)
 eval_metrics = np.zeros((n_splits, n_metrics))
-labels = pd.read_csv(Path(dataset.raw_dir)/'Labels.csv').loc[:,'diagnosis']
+labels = pd.read_csv(Path(dataset.raw_dir)/'Labels_164parcels.csv').loc[:,'diagnosis']
 labels = labels.map({'CONTROL' : 0, 'SCHZ' : 1}).values
-batch = pd.read_csv('data/raw/Labels.csv').loc[:,'dataset']
+batch = pd.read_csv('data/raw/Labels_164parcels.csv').loc[:,'dataset']
 batch = batch.map({'UCLA_CNP' : 0, 'COBRE' : 1}).values
 thresholds = {}
 

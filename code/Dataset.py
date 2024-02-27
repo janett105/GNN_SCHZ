@@ -27,7 +27,7 @@ class FCGraphDataset(InMemoryDataset):
         return ['data.pt']
 
     def process(self):
-        self.labels = pd.read_csv(Path(self.raw_dir)/'Labels.csv').loc[:,'diagnosis']
+        self.labels = pd.read_csv(Path(self.raw_dir)/'Labels_164parcels.csv').loc[:,'diagnosis']
         self.labels = self.labels.map({'CONTROL' : 0, 'SCHZ' : 1}).values
 
         data_list=[]
