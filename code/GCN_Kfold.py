@@ -15,6 +15,7 @@ from Model_GCN import GCN
 from Dataset import FCGraphDataset
 from ROC_AUC import ROC_threshold
 from vizGraph import viz_graph
+from utils.SiteEffect import HC_SCZ_SiteEffectExists
 
 # dataset + parcels + combat 
 name = 'data0_164parcel_'
@@ -60,14 +61,11 @@ def GCN_test(loader):
     label = []
     val_loss_all = 0
     for data in loader:
-        
-
         data = data.to(device)
         output, h = model(data)
         val_loss = func.cross_entropy(output, data.y)
         val_loss_all += data.num_graphs * val_loss.item()
-        
-        
+
         if dataset.num_classes == 2:
             print(f'{n_fold+1} fold | {epoch} epoch | predict_prob : {func.softmax(output, dim=1)}')
             pred.append((func.softmax(output, dim=1)[:, 1]>0.38).type(torch.int))
@@ -87,6 +85,11 @@ def GCN_test(loader):
         epoch_spe = tn / (tn + fp)
         epoch_bac = balanced_accuracy_score(y_true, y_pred)
         return epoch_sen, epoch_spe, epoch_bac, val_loss_all / len(val_dataset), y_true, y_score
+
+# HC와 SCZ환자의 site effect 비율
+HC, SCZ = HC_SCZ_SiteEffectExists()
+print(f"Combat 전 - HC - Site Effect Rate : {HC}")
+print(f"Combat 전 - SCZ - Site Effect Rate : {SCZ}")
 
 for n_fold, (train_val, test) in enumerate(skf.split(labels, labels)):  
     print(f'=============== {n_fold+1} fold ===============')
