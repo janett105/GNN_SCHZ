@@ -5,7 +5,7 @@ import torch
 from torch_geometric.data import Data, InMemoryDataset
 from torch_geometric.utils import dense_to_sparse
 
-from code.AdjacencyMat import compute_KNN_graph
+from AdjacencyMat import compute_KNN_graph
 
 class FCGraphDataset(InMemoryDataset):
     """
