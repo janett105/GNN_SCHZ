@@ -130,16 +130,16 @@ for n_fold, (train_val, test) in enumerate(skf.split(labels, labels)):
     # adjusted_test_x = cbt.transform(x=test_x, sites=test_batch)
     # test_dataset.x = adjusted_test_x
 
-    # train_sampler = ImbalancedSampler(train_dataset)
-    # val_sampler = ImbalancedSampler(val_dataset)
-    # test_sampler = ImbalancedSampler(test_dataset)
-    # train_loader = DataLoader(train_dataset, batch_size=64, sampler=train_sampler) # 64 graphs
-    # val_loader = DataLoader(val_dataset, batch_size=64, sampler=val_sampler) # 40 graphs
-    # test_loader = DataLoader(test_dataset, batch_size=64, sampler=test_sampler) # 12 graphs
+    train_sampler = ImbalancedSampler(train_dataset)
+    val_sampler = ImbalancedSampler(val_dataset)
+    test_sampler = ImbalancedSampler(test_dataset)
+    train_loader = DataLoader(train_dataset, batch_size=64, sampler=train_sampler) # 64 graphs
+    val_loader = DataLoader(val_dataset, batch_size=64, sampler=val_sampler) # 40 graphs
+    test_loader = DataLoader(test_dataset, batch_size=64, sampler=test_sampler) # 12 graphs
 
-    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True) # 64 graphs
-    val_loader = DataLoader(val_dataset, batch_size=64, shuffle=True) # 40 graphs
-    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=True) # 12 graphs
+    # train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True) # 64 graphs
+    # val_loader = DataLoader(val_dataset, batch_size=64, shuffle=True) # 40 graphs
+    # test_loader = DataLoader(test_dataset, batch_size=64, shuffle=True) # 12 graphs
 
     min_v_loss = np.inf
     history={'epoch':[], 't_loss':[], 'v_loss':[]}
@@ -156,7 +156,7 @@ for n_fold, (train_val, test) in enumerate(skf.split(labels, labels)):
             min_v_loss = v_loss
             best_val_bac = val_bac
             best_test_sen, best_test_spe, best_test_bac = test_sen, test_spe, test_bac
-            torch.save(model.state_dict(), f'results/best_models/{name}_{n_fold + 1}fold.pth')
+            torch.save(model.state_dict(), f'results/best_models/{name}/{n_fold + 1}fold.pth')
             print('CV: {:03d}, Epoch: {:03d}, Val Loss: {:.5f}, Val BAC: {:.5f}, Test BAC: {:.5f}, TEST SEN: {:.5f}, '
                   'TEST SPE: {:.5f}'.format(n_fold + 1, epoch + 1, min_v_loss, best_val_bac, best_test_bac,
                                             best_test_sen, best_test_spe))
@@ -201,7 +201,7 @@ for row in range(5):
     axes[row,1].grid()
     axes[row,1].set_xlabel('epoch')
     axes[row,1].set_ylabel('loss')
-    axes[row,1].set_ylim([0,2])
+    axes[row,1].set_ylim([0,10])
 plt.show()
 
 sys.stdout.close()
