@@ -18,18 +18,26 @@ from utils.ROC_AUC import ROC_threshold
 from utils.vizGraph import viz_graph
 from utils.SiteEffect import HC_SCZ_SiteEffectExists
 from utils.FocalLoss import sigmoid_focal_loss
-
-# dataset + parcels + combat 
-name = 'data0_164parcel_'
+from utils.makeDir import createDirectory
 
 n_splits = 10 # n fold CV
 n_metrics = 3 # balanced accuracy, 
 k_order = 10 # KNN 
-n_epoch = 200
-class_weights=torch.tensor([0.72,1.66])
 
-# 출력결과 파일 저장 
-sys.stdout = open(f'results/stdouts/{name}.txt', 'w')
+n_epoch = 100
+th=0.5
+class_weights=torch.tensor([0.72,1.66])
+UpsamplingExists = True
+criterion = 'focal' #CE
+"""
+focal : gamma=2, alpha=0.75, reduction='sum'
+CD : weights=[0.72,1.66]
+"""
+# dataset + parcels + combat + upsampling + loss func + n_epoch
+filename = f'data0_164pc_cbtX_upO_{criterion}_{n_epoch}epc'
+
+##########################################################################################
+sys.stdout = open(f'results/stdouts/{filename}.txt', 'w')
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 dataset = FCGraphDataset('data')
@@ -39,8 +47,21 @@ labels = pd.read_csv(Path(dataset.raw_dir)/'Labels_164parcels.csv').loc[:,'diagn
 labels = labels.map({'CONTROL' : 0, 'SCHZ' : 1}).values
 batch = pd.read_csv('data/raw/Labels_164parcels.csv').loc[:,'dataset']
 batch = batch.map({'UCLA_CNP' : 0, 'COBRE' : 1}).values
-thresholds = {}
+#thresholds = {}
+historys_loss=[]
+historys_sen=[]
+historys_spe=[]
+historys_bac=[]
 
+##########################################################################################
+print(dataset)
+print("=========================================")
+print(dataset[0])
+print("=========================================")
+# HC와 SCZ환자의 site effect 비율
+# HC, SCZ = HC_SCZ_SiteEffectExists()
+# print(f"Combat 전 - HC - Site Effect Rate : {HC}")
+# print(f"Combat 전 - SCZ - Site Effect Rate : {SCZ}")
 
 def GCN_train(loader):
     model.train()
@@ -53,10 +74,13 @@ def GCN_train(loader):
         optimizer.zero_grad()
         output, h = model(data)
 
-        #train_loss = func.cross_entropy(output, data.y, weight=class_weights) 
-        train_loss = sigmoid_focal_loss(inputs=output[:,1].float(), targets=data.y.float(), gamma=2, alpha=0.75, reduction='sum')
+        if criterion == 'focal':
+            train_loss = sigmoid_focal_loss(inputs=output[:,1].float(), targets=data.y.float(), gamma=2, alpha=0.75, reduction='sum')
+        elif criterion == 'CE':
+            train_loss = func.cross_entropy(output, data.y, weight=class_weights) 
+        
         train_loss_all += data.num_graphs * train_loss.item()
-        pred.append((func.softmax(output, dim=1)[:, 1]>0.5).type(torch.int))
+        pred.append((func.softmax(output, dim=1)[:, 1]>th).type(torch.int))
         label.append(data.y)
 
         train_loss.backward()
@@ -74,52 +98,38 @@ def GCN_train(loader):
 def GCN_test(loader):
     model.eval()
 
-    score=[]
+    #score=[]
     pred = []
     label = []
     val_loss_all = 0
     for data in loader:
         data = data.to(device)
         output, h = model(data) 
-        val_loss = func.cross_entropy(output, data.y, weight=class_weights)
-        #val_loss = sigmoid_focal_loss(inputs=output[:,1].float(), targets=data.y.float(), gamma=2, alpha=0.75, reduction='sum')
+
+        if criterion == 'focal':
+            val_loss = sigmoid_focal_loss(inputs=output[:,1].float(), targets=data.y.float(), gamma=2, alpha=0.75, reduction='sum')
+        elif criterion == 'CE':
+            val_loss = func.cross_entropy(output, data.y, weight=class_weights) 
         val_loss_all += data.num_graphs * val_loss.item()
 
-        if dataset.num_classes == 2:
-            print(f'{n_fold+1} fold | {epoch} epoch | predict_prob : {func.softmax(output, dim=1)}')
-            pred.append((func.softmax(output, dim=1)[:, 1]>0.5).type(torch.int))
-            label.append(data.y)
-            score.append(func.softmax(output, dim=1)[:, 1])
+        pred.append((func.softmax(output, dim=1)[:, 1]>th).type(torch.int))
+        label.append(data.y)
+        #score.append(func.softmax(output, dim=1)[:, 1]) 
+        print(f'{n_fold+1} fold | {epoch} epoch | predict_prob : {func.softmax(output, dim=1)}')
 
     y_pred = torch.cat(pred, dim=0).cpu().detach().numpy()
     y_true = torch.cat(label, dim=0).cpu().detach().numpy()
-    y_score = torch.cat(score, dim=0).cpu().detach().numpy()
+    #y_score = torch.cat(score, dim=0).cpu().detach().numpy()
 
     print(f'{n_fold+1} fold | {epoch} epoch | y_true : {y_true}')
     print(f'{n_fold+1} fold | {epoch} epoch | y_pred : {y_pred}')
 
-    if dataset.num_classes == 2:
-        tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
-        epoch_sen = recall_score(y_true, y_pred)
-        epoch_spe = tn / (tn + fp)
-        epoch_bac = balanced_accuracy_score(y_true, y_pred)
-        return epoch_sen, epoch_spe, epoch_bac, val_loss_all / len(val_dataset), y_true, y_score
+    tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
+    epoch_sen = recall_score(y_true, y_pred)
+    epoch_spe = tn / (tn + fp)
+    epoch_bac = balanced_accuracy_score(y_true, y_pred)
+    return epoch_sen, epoch_spe, epoch_bac, val_loss_all / len(val_dataset)
 
-
-print(dataset)
-print("=========================================")
-print(dataset[0])
-print("=========================================")
-# HC와 SCZ환자의 site effect 비율
-# HC, SCZ = HC_SCZ_SiteEffectExists()
-# print(f"Combat 전 - HC - Site Effect Rate : {HC}")
-# print(f"Combat 전 - SCZ - Site Effect Rate : {SCZ}")
-
-
-historys_loss=[]
-historys_sen=[]
-historys_spe=[]
-historys_bac=[]
 for n_fold, (train_val, test) in enumerate(skf.split(labels, labels)):  
     print(f'=============== {n_fold+1} fold ===============')
     model = GCN(dataset.num_features, dataset.num_classes, k_order).to(device)
@@ -145,16 +155,13 @@ for n_fold, (train_val, test) in enumerate(skf.split(labels, labels)):
     # adjusted_test_x = cbt.transform(x=test_x, sites=test_batch)
     # test_dataset.x = adjusted_test_x
 
-    train_sampler = ImbalancedSampler(train_dataset)
-    val_sampler = ImbalancedSampler(val_dataset)
-    test_sampler = ImbalancedSampler(test_dataset)
-    train_loader = DataLoader(train_dataset, batch_size=64, sampler=train_sampler) # 64 graphs
-    val_loader = DataLoader(val_dataset, batch_size=64, sampler=val_sampler) # 40 graphs
-    test_loader = DataLoader(test_dataset, batch_size=64, sampler=test_sampler) # 12 graphs
-
-    # train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True) # 64 graphs
-    # val_loader = DataLoader(val_dataset, batch_size=64, shuffle=True) # 40 graphs
-    # test_loader = DataLoader(test_dataset, batch_size=64, shuffle=True) # 12 graphs
+    if UpsamplingExists==True:
+        train_sampler = ImbalancedSampler(train_dataset)
+        train_loader = DataLoader(train_dataset, batch_size=64, sampler=train_sampler) 
+    else: 
+        train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=64, shuffle=True) 
+    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=True)
 
     min_v_loss = np.inf
     history_loss={'epoch':[], 't_loss':[], 'tt_loss':[]}
@@ -163,8 +170,8 @@ for n_fold, (train_val, test) in enumerate(skf.split(labels, labels)):
     history_bac={'epoch':[], 't_bac':[], 'tt_bac':[]}
     for epoch in range(n_epoch):
         train_sen, train_spe, train_bac, t_loss = GCN_train(train_loader)
-        val_sen, val_spe, val_bac, v_loss, v_true, v_score = GCN_test(val_loader)
-        test_sen, test_spe, test_bac, _, test_true, test_score = GCN_test(test_loader)
+        val_sen, val_spe, val_bac, v_loss = GCN_test(val_loader)
+        test_sen, test_spe, test_bac, _ = GCN_test(test_loader)
         print(f'train loss : {t_loss} , val loss : {v_loss}')
         history_loss['epoch'].append(epoch)
         history_loss['t_loss'].append(t_loss)
@@ -183,20 +190,20 @@ for n_fold, (train_val, test) in enumerate(skf.split(labels, labels)):
             min_v_loss = v_loss
             best_val_bac = val_bac
             best_test_sen, best_test_spe, best_test_bac = test_sen, test_spe, test_bac
-            torch.save(model.state_dict(), f'results/best_models/{name}/{n_fold + 1}fold.pth')
+            createDirectory(f'results/best_models/{filename}')
+            torch.save(model.state_dict(), f'results/best_models/{filename}/{n_fold + 1}fold.pth')
             print('CV: {:03d}, Epoch: {:03d}, Val Loss: {:.5f}, Val BAC: {:.5f}, Test BAC: {:.5f}, TEST SEN: {:.5f}, '
                   'TEST SPE: {:.5f}'.format(n_fold + 1, epoch + 1, min_v_loss, best_val_bac, best_test_bac,
                                             best_test_sen, best_test_spe))
 
-        # 각 epoch에서의 val, test에서의 best threshold 
-        thresholds_epochs = [[]]*n_epoch
-        thresholds_epochs[epoch] = ROC_threshold(v_true, v_score, test_true, test_score)
+        #thresholds_epochs = [[]]*n_epoch
+        #thresholds_epochs[epoch] = ROC_threshold(v_true, v_score, test_true, test_score)
 
     eval_metrics[n_fold, 0] = best_test_sen
     eval_metrics[n_fold, 1] = best_test_spe
     eval_metrics[n_fold, 2] = best_test_bac
     
-    thresholds[f'{n_fold+1} fold'] = thresholds_epochs
+    #thresholds[f'{n_fold+1} fold'] = thresholds_epochs
     historys_loss.append(history_loss)
     historys_sen.append(history_sen)
     historys_spe.append(history_spe)
@@ -209,29 +216,46 @@ print(eval_df)
 print('Average Sensitivity: %.4f+-%.4f' % (eval_metrics[:, 0].mean(), eval_metrics[:, 0].std()))
 print('Average Specificity: %.4f+-%.4f' % (eval_metrics[:, 1].mean(), eval_metrics[:, 1].std()))
 print('Average Balanced Accuracy: %.4f+-%.4f' % (eval_metrics[:, 2].mean(), eval_metrics[:, 2].std()))
-# {n_fold+1} fold의 각 epoch에서의 [best val threshold, best val threshold]
 #print(thresholds)
-fig,axes=plt.subplots(5,2,figsize=(50,10), sharex=True, sharey=True)
-fig.tight_layout(pad=2)
-for row in range(5):
-    h0=historys[0]
-    h1=historys[1]
 
-    axes[row,0].plot(h0['epoch'], h0['t_loss'], marker='.', c='blue', label = 'train_loss')
-    axes[row,0].plot(h0['epoch'], h0['v_loss'], marker='.', c='red', label = 'val_loss')
-    axes[row,0].legend(loc='upper right')
-    axes[row,0].grid()
-    axes[row,0].set_xlabel('epoch')
-    axes[row,0].set_ylabel('loss')
-    axes[row,0].set_ylim([0,10])
+for met in range(n_metrics+1):
+    if met==0:
+        metname='loss' 
+        hs=historys_loss
+    elif met==1:
+        metname='sen'
+        hs=historys_sen
+    elif met==2:
+        metname='spe'
+        hs=historys_spe
+    else: 
+        metname='bac'
+        hs=historys_bac
 
-    axes[row,1].plot(h1['epoch'], h1['t_loss'], marker='.', c='blue', label = 'train_loss')
-    axes[row,1].plot(h1['epoch'], h1['v_loss'], marker='.', c='red', label = 'val_loss')
-    axes[row,1].legend(loc='upper right')
-    axes[row,1].grid()
-    axes[row,1].set_xlabel('epoch')
-    axes[row,1].set_ylabel('loss')
-    axes[row,1].set_ylim([0,10])
-plt.show()
+    print(f'total {metname} : {hs}')
+    sum_t=np.array(hs[0][f't_{metname}'])
+    sum_tt=np.array(hs[0][f'tt_{metname}'])
+    h={'epoch':hs[0]['epoch'], f'training_{metname}':[], f'test(val)_{metname}':[]}
+    for i in range(1,n_splits):
+        sum_t += np.array(hs[i][f't_{metname}'])
+        sum_tt += np.array(hs[i][f'tt_{metname}'])
+    h[f'training_{metname}'] = sum_t/n_splits
+    h[f'test(val)_{metname}'] = sum_tt/n_splits
+    print(f'avg {metname} : {h}')
+
+    plt.plot(h['epoch'], h[f'training_{metname}'], marker='.', c='blue', label = f'training_{metname}')
+    plt.plot(h['epoch'], h[f'test(val)_{metname}'], marker='.', c='red', label = f'test(val)_{metname}')
+    plt.legend(loc='upper right')
+    plt.grid()
+    plt.xlabel('epoch')
+    plt.ylabel(f'avg {metname}')
+    if metname=='loss':
+        plt.ylim([0,10])
+    else:
+        plt.ylim([0,1])
+
+    createDirectory(f'results/figs/{filename}')
+    plt.savefig(f'results/figs/{filename}/{metname}.png')
+    plt.show()
 
 sys.stdout.close()
