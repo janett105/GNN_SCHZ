@@ -28,20 +28,19 @@ n_epoch = 200
 th=0.5
 class_weights=torch.tensor([0.72,1.66])
 UpsamplingExists = True
-criterion = 'focal'
-#criterion = 'CE'
+criterion = 'focal' #CE
 """
 focal : gamma=2, alpha=0.75, reduction='sum'
 CD : weights=[0.72,1.66]
 """
 # dataset + parcels + combat + upsampling + loss func + n_epoch
-filename = f'data0_164pc_cbtX_upO_{criterion}_{n_epoch}epc'
+filename = f'data0_164pc_cbtX_upO_{criterion}(2,0.6)_{n_epoch}epc'
 
 ##########################################################################################
 sys.stdout = open(f'results/stdouts/{filename}.txt', 'w')
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-dataset = FCGraphDataset('data')
+dataset = FCGraphDataset('data').to(device)
 skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=0)
 eval_metrics = np.zeros((n_splits, n_metrics))
 labels = pd.read_csv(Path(dataset.raw_dir)/'Labels_164parcels.csv').loc[:,'diagnosis']
@@ -76,7 +75,7 @@ def GCN_train(loader):
         output, h = model(data)
 
         if criterion == 'focal':
-            train_loss = sigmoid_focal_loss(inputs=output[:,1].float(), targets=data.y.float(), gamma=2, alpha=0.75, reduction='sum')
+            train_loss = sigmoid_focal_loss(inputs=output[:,1].float(), targets=data.y.float(), gamma=2, alpha=0.6, reduction='sum')
         elif criterion == 'CE':
             train_loss = func.cross_entropy(output, data.y, weight=class_weights) 
         
@@ -108,7 +107,7 @@ def GCN_test(loader):
         output, h = model(data) 
 
         if criterion == 'focal':
-            val_loss = sigmoid_focal_loss(inputs=output[:,1].float(), targets=data.y.float(), gamma=2, alpha=0.75, reduction='sum')
+            val_loss = sigmoid_focal_loss(inputs=output[:,1].float(), targets=data.y.float(), gamma=2, alpha=0.6, reduction='sum')
         elif criterion == 'CE':
             val_loss = func.cross_entropy(output, data.y, weight=class_weights) 
         val_loss_all += data.num_graphs * val_loss.item()
@@ -158,7 +157,7 @@ for n_fold, (train_val, test) in enumerate(skf.split(labels, labels)):
 
     if UpsamplingExists==True:
         train_sampler = ImbalancedSampler(train_dataset)
-        train_loader = DataLoader(train_dataset, batch_size=64, sampler=train_sampler) 
+        train_loader = DataLoader(train_dataset, batch_size=64, sampler=train_sampler)
     else: 
         train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=64, shuffle=True) 
