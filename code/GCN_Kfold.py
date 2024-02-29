@@ -24,23 +24,23 @@ n_splits = 10 # n fold CV
 n_metrics = 3 # balanced accuracy, 
 k_order = 10 # KNN 
 
-n_epoch = 100
+n_epoch = 200
 th=0.5
 class_weights=torch.tensor([0.72,1.66])
-UpsamplingExists = True
+UpsamplingExists = False
 criterion = 'focal' #CE
 """
 focal : gamma=2, alpha=0.75, reduction='sum'
 CD : weights=[0.72,1.66]
 """
 # dataset + parcels + combat + upsampling + loss func + n_epoch
-filename = f'data0_164pc_cbtX_upO_{criterion}_{n_epoch}epc'
+filename = f'data0_164pc_cbtX_upX_{criterion}_{n_epoch}epc'
 
 ##########################################################################################
 sys.stdout = open(f'results/stdouts/{filename}.txt', 'w')
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-dataset = FCGraphDataset('data')
+dataset = FCGraphDataset('data').to(device)
 skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=0)
 eval_metrics = np.zeros((n_splits, n_metrics))
 labels = pd.read_csv(Path(dataset.raw_dir)/'Labels_164parcels.csv').loc[:,'diagnosis']
@@ -134,7 +134,7 @@ for n_fold, (train_val, test) in enumerate(skf.split(labels, labels)):
     print(f'=============== {n_fold+1} fold ===============')
     model = GCN(dataset.num_features, dataset.num_classes, k_order).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
-    cbt = CombatModel()
+    cbt = CombatModel().to(device)
 
     train_val_dataset, test_dataset = dataset[train_val.tolist()], dataset[test.tolist()]
     train_val_labels = labels[train_val]    
@@ -157,7 +157,7 @@ for n_fold, (train_val, test) in enumerate(skf.split(labels, labels)):
 
     if UpsamplingExists==True:
         train_sampler = ImbalancedSampler(train_dataset)
-        train_loader = DataLoader(train_dataset, batch_size=64, sampler=train_sampler) 
+        train_loader = DataLoader(train_dataset, batch_size=64, sampler=train_sampler)
     else: 
         train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=64, shuffle=True) 
