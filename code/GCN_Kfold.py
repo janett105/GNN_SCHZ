@@ -50,8 +50,8 @@ def GCN_train(loader):
         data = data.to(device)
         optimizer.zero_grad()
         output, h = model(data)
-        #train_loss = func.cross_entropy(output, data.y, weight=class_weights) 
-        train_loss = sigmoid_focal_loss(inputs=output[:,1].float(), targets=data.y.float(), gamma=2, alpha=0.25, reduction='sum')
+        train_loss = func.cross_entropy(output, data.y, weight=class_weights) 
+        #train_loss = sigmoid_focal_loss(inputs=output[:,1].float(), targets=data.y.float(), gamma=2, alpha=0.75, reduction='sum')
         train_loss.backward()
         train_loss_all += data.num_graphs * train_loss.item()
         optimizer.step()
@@ -68,8 +68,8 @@ def GCN_test(loader):
     for data in loader:
         data = data.to(device)
         output, h = model(data) 
-        #val_loss = func.cross_entropy(output, data.y, weight=class_weights)
-        val_loss = sigmoid_focal_loss(inputs=output[:,1].float(), targets=data.y.float(), gamma=2, alpha=0.75, reduction='sum')
+        val_loss = func.cross_entropy(output, data.y, weight=class_weights)
+        #val_loss = sigmoid_focal_loss(inputs=output[:,1].float(), targets=data.y.float(), gamma=2, alpha=0.75, reduction='sum')
         val_loss_all += data.num_graphs * val_loss.item()
 
         if epoch==n_epoch:viz_graph(h, color=data.y)
@@ -193,7 +193,7 @@ for row in range(5):
     axes[row,0].grid()
     axes[row,0].set_xlabel('epoch')
     axes[row,0].set_ylabel('loss')
-    axes[row,0].set_ylim([0,10])
+    axes[row,0].set_ylim([0,2])
 
     axes[row,1].plot(h1['epoch'], h1['t_loss'], marker='.', c='blue', label = 'train_loss')
     axes[row,1].plot(h1['epoch'], h1['v_loss'], marker='.', c='red', label = 'val_loss')
@@ -201,7 +201,7 @@ for row in range(5):
     axes[row,1].grid()
     axes[row,1].set_xlabel('epoch')
     axes[row,1].set_ylabel('loss')
-    axes[row,1].set_ylim([0,10])
+    axes[row,1].set_ylim([0,2])
 plt.show()
 
 sys.stdout.close()

@@ -12,7 +12,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 k_order = 10 # KNN 
 
 dataset = FCGraphDataset('data')
-labels = pd.read_csv(Path(dataset.raw_dir)/'UCLA_CNP_Labels_400parcel.csv').loc[:75,'diagnosis']
+labels = pd.read_csv(Path(dataset.raw_dir)/'Labels_164parcels.csv').loc[:,'diagnosis']
 labels = labels.map({'CONTROL' : 0, 'SCHZ' : 1}).values
 
 model = GCN(dataset.num_features, dataset.num_classes, k_order).to(device)
