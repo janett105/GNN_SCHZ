@@ -1,5 +1,5 @@
-# import os
-# print(os.getcwd())
+import os
+print(os.getcwd())
 import torch
 import numpy as np
 import pandas as pd
@@ -25,7 +25,7 @@ name = 'data0_164parcel_'
 n_splits = 10 # n fold CV
 n_metrics = 3 # balanced accuracy, 
 k_order = 10 # KNN 
-n_epoch = 70
+n_epoch = 200
 class_weights=torch.tensor([0.72,1.66])
 
 # 출력결과 파일 저장 
@@ -45,18 +45,31 @@ thresholds = {}
 def GCN_train(loader):
     model.train()
 
+    label = []
+    pred = []
     train_loss_all = 0
     for data in loader:
         data = data.to(device)
         optimizer.zero_grad()
         output, h = model(data)
-        train_loss = func.cross_entropy(output, data.y, weight=class_weights) 
-        #train_loss = sigmoid_focal_loss(inputs=output[:,1].float(), targets=data.y.float(), gamma=2, alpha=0.75, reduction='sum')
-        train_loss.backward()
+
+        #train_loss = func.cross_entropy(output, data.y, weight=class_weights) 
+        train_loss = sigmoid_focal_loss(inputs=output[:,1].float(), targets=data.y.float(), gamma=2, alpha=0.75, reduction='sum')
         train_loss_all += data.num_graphs * train_loss.item()
+        pred.append((func.softmax(output, dim=1)[:, 1]>0.5).type(torch.int))
+        label.append(data.y)
+
+        train_loss.backward()
         optimizer.step()
 
-    return train_loss_all / len(train_dataset)
+    y_pred = torch.cat(pred, dim=0).cpu().detach().numpy()
+    y_true = torch.cat(label, dim=0).cpu().detach().numpy()
+
+    tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
+    epoch_sen = recall_score(y_true, y_pred)
+    epoch_spe = tn / (tn + fp)
+    epoch_bac = balanced_accuracy_score(y_true, y_pred)
+    return epoch_sen, epoch_spe, epoch_bac, train_loss_all / len(train_dataset)
 
 def GCN_test(loader):
     model.eval()
@@ -71,8 +84,6 @@ def GCN_test(loader):
         val_loss = func.cross_entropy(output, data.y, weight=class_weights)
         #val_loss = sigmoid_focal_loss(inputs=output[:,1].float(), targets=data.y.float(), gamma=2, alpha=0.75, reduction='sum')
         val_loss_all += data.num_graphs * val_loss.item()
-
-        if epoch==n_epoch:viz_graph(h, color=data.y)
 
         if dataset.num_classes == 2:
             print(f'{n_fold+1} fold | {epoch} epoch | predict_prob : {func.softmax(output, dim=1)}')
@@ -104,7 +115,11 @@ print("=========================================")
 # print(f"Combat 전 - HC - Site Effect Rate : {HC}")
 # print(f"Combat 전 - SCZ - Site Effect Rate : {SCZ}")
 
-historys=[]
+
+historys_loss=[]
+historys_sen=[]
+historys_spe=[]
+historys_bac=[]
 for n_fold, (train_val, test) in enumerate(skf.split(labels, labels)):  
     print(f'=============== {n_fold+1} fold ===============')
     model = GCN(dataset.num_features, dataset.num_classes, k_order).to(device)
@@ -142,15 +157,27 @@ for n_fold, (train_val, test) in enumerate(skf.split(labels, labels)):
     # test_loader = DataLoader(test_dataset, batch_size=64, shuffle=True) # 12 graphs
 
     min_v_loss = np.inf
-    history={'epoch':[], 't_loss':[], 'v_loss':[]}
+    history_loss={'epoch':[], 't_loss':[], 'tt_loss':[]}
+    history_sen={'epoch':[], 't_sen':[], 'tt_sen':[]}
+    history_spe={'epoch':[], 't_spe':[], 'tt_spe':[]}
+    history_bac={'epoch':[], 't_bac':[], 'tt_bac':[]}
     for epoch in range(n_epoch):
-        t_loss = GCN_train(train_loader)
+        train_sen, train_spe, train_bac, t_loss = GCN_train(train_loader)
         val_sen, val_spe, val_bac, v_loss, v_true, v_score = GCN_test(val_loader)
         test_sen, test_spe, test_bac, _, test_true, test_score = GCN_test(test_loader)
         print(f'train loss : {t_loss} , val loss : {v_loss}')
-        history['epoch'].append(epoch)
-        history['t_loss'].append(t_loss)
-        history['v_loss'].append(v_loss)
+        history_loss['epoch'].append(epoch)
+        history_loss['t_loss'].append(t_loss)
+        history_loss['tt_loss'].append(v_loss)
+        history_sen['epoch'].append(epoch)
+        history_sen['t_sen'].append(train_sen)
+        history_sen['tt_sen'].append(test_sen)
+        history_spe['epoch'].append(epoch)
+        history_spe['t_spe'].append(train_spe)
+        history_spe['tt_spe'].append(test_spe)
+        history_bac['epoch'].append(epoch)
+        history_bac['t_bac'].append(train_bac)
+        history_bac['tt_bac'].append(test_bac)
 
         if min_v_loss > v_loss:
             min_v_loss = v_loss
@@ -170,7 +197,10 @@ for n_fold, (train_val, test) in enumerate(skf.split(labels, labels)):
     eval_metrics[n_fold, 2] = best_test_bac
     
     thresholds[f'{n_fold+1} fold'] = thresholds_epochs
-    historys.append(history)
+    historys_loss.append(history_loss)
+    historys_sen.append(history_sen)
+    historys_spe.append(history_spe)
+    historys_bac.append(history_bac)
 
 eval_df = pd.DataFrame(eval_metrics)
 eval_df.columns = ['SEN', 'SPE', 'BAC']
@@ -193,7 +223,7 @@ for row in range(5):
     axes[row,0].grid()
     axes[row,0].set_xlabel('epoch')
     axes[row,0].set_ylabel('loss')
-    axes[row,0].set_ylim([0,2])
+    axes[row,0].set_ylim([0,10])
 
     axes[row,1].plot(h1['epoch'], h1['t_loss'], marker='.', c='blue', label = 'train_loss')
     axes[row,1].plot(h1['epoch'], h1['v_loss'], marker='.', c='red', label = 'val_loss')
@@ -201,7 +231,7 @@ for row in range(5):
     axes[row,1].grid()
     axes[row,1].set_xlabel('epoch')
     axes[row,1].set_ylabel('loss')
-    axes[row,1].set_ylim([0,2])
+    axes[row,1].set_ylim([0,10])
 plt.show()
 
 sys.stdout.close()
