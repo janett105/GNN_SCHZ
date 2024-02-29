@@ -25,9 +25,10 @@ n_metrics = 3 # balanced accuracy,
 k_order = 10 # KNN 
 
 n_epoch = 200
+n_epoch = 200
 th=0.5
 class_weights=torch.tensor([0.72,1.66])
-UpsamplingExists = False
+UpsamplingExists = True
 criterion = 'focal' #CE
 """
 focal : gamma=2, alpha=0.75, reduction='sum'
@@ -232,7 +233,6 @@ for met in range(n_metrics+1):
         metname='bac'
         hs=historys_bac
 
-    print(f'total {metname} : {hs}')
     sum_t=np.array(hs[0][f't_{metname}'])
     sum_tt=np.array(hs[0][f'tt_{metname}'])
     h={'epoch':hs[0]['epoch'], f'training_{metname}':[], f'test(val)_{metname}':[]}
@@ -241,7 +241,8 @@ for met in range(n_metrics+1):
         sum_tt += np.array(hs[i][f'tt_{metname}'])
     h[f'training_{metname}'] = sum_t/n_splits
     h[f'test(val)_{metname}'] = sum_tt/n_splits
-    print(f'avg {metname} : {h}')
+    print(f'avg training_{metname} : {h[f"training_{metname}"]}')
+    print(f'avg test_{metname} : {h[f"test(val)_{metname}"]}')
 
     plt.plot(h['epoch'], h[f'training_{metname}'], marker='.', c='blue', label = f'training_{metname}')
     plt.plot(h['epoch'], h[f'test(val)_{metname}'], marker='.', c='red', label = f'test(val)_{metname}')
