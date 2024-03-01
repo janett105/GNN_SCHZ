@@ -24,7 +24,7 @@ n_splits = 10 # n fold CV
 n_metrics = 3 # balanced accuracy, 
 k_order = 10 # KNN 
 
-n_epoch = 200
+n_epoch = 1000
 th=0.5
 class_weights=torch.tensor([0.72,1.66])
 UpsamplingExists = True
@@ -34,7 +34,7 @@ focal : gamma=2, alpha=0.75, reduction='sum'
 CD : weights=[0.72,1.66]
 """
 # dataset + parcels + combat + upsampling + loss func + n_epoch
-filename = f'data0_164pc_cbtX_upO_{criterion}(2,0.6)_{n_epoch}epc'
+filename = f'data0_164pc_cbtX_upO_{criterion}(2,0.5)_{n_epoch}epc'
 
 ##########################################################################################
 sys.stdout = open(f'results/stdouts/{filename}.txt', 'w')
@@ -75,7 +75,7 @@ def GCN_train(loader):
         output, h = model(data)
 
         if criterion == 'focal':
-            train_loss = sigmoid_focal_loss(inputs=output[:,1].float(), targets=data.y.float(), gamma=2, alpha=0.6, reduction='sum')
+            train_loss = sigmoid_focal_loss(inputs=output[:,1].float(), targets=data.y.float(), gamma=2, alpha=0.5, reduction='sum')
         elif criterion == 'CE':
             train_loss = func.cross_entropy(output, data.y, weight=class_weights) 
         
@@ -107,7 +107,7 @@ def GCN_test(loader):
         output, h = model(data) 
 
         if criterion == 'focal':
-            val_loss = sigmoid_focal_loss(inputs=output[:,1].float(), targets=data.y.float(), gamma=2, alpha=0.6, reduction='sum')
+            val_loss = sigmoid_focal_loss(inputs=output[:,1].float(), targets=data.y.float(), gamma=2, alpha=0.5, reduction='sum')
         elif criterion == 'CE':
             val_loss = func.cross_entropy(output, data.y, weight=class_weights) 
         val_loss_all += data.num_graphs * val_loss.item()
@@ -256,6 +256,6 @@ for met in range(n_metrics+1):
 
     createDirectory(f'results/figs/{filename}')
     plt.savefig(f'results/figs/{filename}/{metname}.png')
-    plt.show()
+    #plt.show()
 
 sys.stdout.close()
