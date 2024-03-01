@@ -25,5 +25,3 @@ def viz_graph(data, color):
     
     plt.show()
 
-# data= KarateClub()[0]
-# viz_graph(dataset, color=dataset.y)
