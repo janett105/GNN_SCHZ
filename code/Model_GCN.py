@@ -106,6 +106,7 @@ def GCN_test(model, loader, weight, len_val_dataset, n_fold, epoch, device='cpu'
 
     tn, fp, fn, tp = confusion_matrix(y_true, y_pred, labels=[0,1]).ravel()
     epoch_sen = recall_score(y_true, y_pred)
+    
     epoch_spe = tn / (tn + fp)
     epoch_bac = balanced_accuracy_score(y_true, y_pred)
     return epoch_sen, epoch_spe, epoch_bac, val_loss_all / len_val_dataset

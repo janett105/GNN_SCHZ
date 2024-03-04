@@ -58,7 +58,6 @@ def extract_mat(rsimg, maskimg, labelimg, conntype='correlation', space='labels'
     # Extract time series
     time_series = masker.fit_transform(rsimg)
     if nomat:
-        print('sfhbjdsbfhjdsbfjhkdsafjhkdsvkhkba')
         connmat = None
         conndf = None
     else:

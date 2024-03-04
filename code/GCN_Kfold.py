@@ -40,7 +40,7 @@ print("====================================================================")
 
 # 설정값
 #th=0.5
-param_grid = {'class_weights':[torch.tensor([0.72, 1.66])]}
+param_grid = {'class_weights':[torch.tensor([1.0, 1.0])]}
 UpsamplingExists = False
 CombatExists = False
 #########################################################################################################################
@@ -172,3 +172,7 @@ def GCN_Kfold(dataset, labels, batch, param_grid, skf,
 
         if savfig:sys.stdout.close()
         return eval_metrics, train_metrics
+    
+GCN_Kfold(dataset, labels, batch, param_grid, skf, 
+                CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, 
+                device, savfig=True)
