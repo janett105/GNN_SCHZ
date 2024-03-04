@@ -57,13 +57,15 @@ def extract_mat(rsimg, maskimg, labelimg, conntype='correlation', space='labels'
 
     # Extract time series
     time_series = masker.fit_transform(rsimg)
-    
     if nomat:
+        print('sfhbjdsbfhjdsbfjhkdsafjhkdsvkhkba')
         connmat = None
         conndf = None
     else:
         connobj = connectome.ConnectivityMeasure(kind=conntype)
         connmat = connobj.fit_transform([time_series])[0]
+        #print('fmri image에 label 적용한 fc : ', connmat.shape)
+        #print('mask 적용한 label 개수: ', len(reglabs))
         conndf = get_con_df(connmat, reglabs)
 
     # if not saving time series, don't pass anything substantial, save mem
@@ -91,26 +93,38 @@ def get_con_df(raw_mat, roi_names):
     con_df = pd.DataFrame(raw_mat, index=roi_names, columns=roi_names)
     return con_df
 
-def makeFC(label_dir):
-    # atlas : Schaefer2018_400Parcels_17Networks_order_FSLMNI152_1mm
+def makeFC(rawdata_dir):
+    atlas = 'AAL3v1_164parcels_1mm'
 
     # labelimg -> parcellation atlas 선택
-    labelimg = nib.load('nilearn_data/schaefer_2018/Schaefer2018_400Parcels_17Networks_order_FSLMNI152_1mm.nii.gz')
+    labelimg = nib.load('nilearn_data/AAL/AAL3v1_1mm.nii.gz')
 
     # subjec number for rsimg & ma
-    subj_list = pd.read_csv(label_dir).iloc[:,0]
+    subj_list = sorted(os.listdir(rawdata_dir))
+    error_subjects=[]
     for subjnum in subj_list:
-        # rsimg -> (resting state) fmri image 경로 입력
-        rsimg = nib.load(f'/z/MRI/UCLA_CNP/preprocess/fmriprep/derivatives/{subjnum}/func/{subjnum}_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz')
+        try :
+            print(f'==============={subjnum}=======================')
+            # rsimg -> (resting state) fmri image 경로 입력
+            rsimg = nib.load(f'{rawdata_dir}/{subjnum}/func/{subjnum}_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz')
 
-        # maskimg -> rsimg에 해당하는 brain mask 경로 입력
-        maskimg = nib.load(f'/mnt/z/MRI/UCLA_CNP/preprocess/fmriprep/derivatives/{subjnum}/func/{subjnum}_task-rest_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz')
+            # maskimg -> rsimg에 해당하는 brain mask 경로 입력
+            maskimg = nib.load(f'{rawdata_dir}/{subjnum}/func/{subjnum}_task-rest_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz')  
+        
+            # connectivity matrix calculation
+            conndf, connmat, time_series, reginparc = extract_mat(rsimg, maskimg, labelimg, conntype='correlation', space='data', savets=False, nomat=False, dtr=False, stdz=False)
+               
+            # connmat -> functional connectivity matrix 생성된 결과
+            np.save(f'results/{atlas}/FC164_{subjnum}.npy',conndf)
+        except ValueError as e :
+            error_subjects.append([{subjnum},e])
+        except FileNotFoundError as e:
+            error_subjects.append([{subjnum},e])
+    return error_subjects
 
-        # connectivity matrix calculation
-        conndf, connmat, time_series, reginparc = extract_mat(rsimg, maskimg, labelimg, conntype='correlation', space='data', savets=False, nomat=False, dtr=False, stdz=False)
+# 전처리된 fmri image가 저장된 경로
+rawdata_dir = '/home/jihoo/UCLA_CNP_FC/COBRE/derivatives'
 
-        # connmat -> functional connectivity matrix 생성된 결과
-        np.save(f'FC/Schaefer2018_400Parcels_17Networks_FSLMNI152_1mm/FC400_{subjnum}.npy',conndf)
+error_subjects = makeFC(rawdata_dir)
 
-label_dir = 'CNP_phenotype.csv'
-makeFC(label_dir)
+print(error_subjects)
