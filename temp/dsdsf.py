@@ -1,7 +1,5 @@
-from sklearn.metrics import balanced_accuracy_score, recall_score , confusion_matrix
-import numpy as np
+import torch
 
-y_true=np.array([0,0,0])
-y_pred=np.array([0,0,0])
-
-tn, fp, fn, tp = confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
+t=torch.tensor([[2,3,4],
+               [1,2,3]])
+print(t[0,0])
