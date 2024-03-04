@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from sklearn.datasets import load_digits # dataset
+
 from sklearn.svm import SVC # model
 
 from sklearn.model_selection import LearningCurveDisplay, StratifiedKFold
@@ -34,6 +35,6 @@ def LearningCrv(estimators, X, y):
 
     plt.show()
 
-#X, y = load_digits(return_X_y=True)
-#svc = SVC(kernel="rbf", gamma=0.001)
-#LearningCrv([svc], X, y)
+# X, y = load_digits(return_X_y=True)
+# svc = SVC(kernel="rbf", gamma=0.001)
+# LearningCrv([svc], X, y)

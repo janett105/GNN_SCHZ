@@ -3,6 +3,7 @@ from torch.nn import Linear
 import torch.nn.functional as func 
 from torch_geometric.nn import GCNConv, global_mean_pool
 from torch_geometric.nn import ChebConv
+import numpy as np
 from sklearn.metrics import balanced_accuracy_score, recall_score , confusion_matrix
 
 class GCN(torch.nn.Module):
@@ -19,7 +20,6 @@ class GCN(torch.nn.Module):
                  k_order,
                  dropout = .5):
         super().__init__()
-        torch.manual_seed(0)
 
         self.p = dropout
         self.k = k_order
@@ -34,53 +34,79 @@ class GCN(torch.nn.Module):
         batch = data.batch
 
         h = func.relu(self.conv1(x, edge_index, edge_attr))
-        #h = func.dropout(h, p=self.p, training=self.training)
+
+        h = func.dropout(h, p=self.p, training=self.training)
         h = func.relu(self.conv2(h, edge_index, edge_attr))
-        #h = func.dropout(h, p=self.p, training=self.training)
+
+        h = func.dropout(h, p=self.p, training=self.training)
         h = func.relu(self.conv3(h, edge_index, edge_attr))
 
         h = global_mean_pool(h, batch)
         out = self.lin1(h)
-        return out, h
+        return func.log_softmax(out, dim=1)
     
-    def fit(self, train_loader, epochs=100):
-        self.train()
-        class_weights = torch.tensor([0.72,1.66])
+def GCN_train(model, optimizer, loader, weight, len_train_dataset, device='cpu'):
+    model.train()
 
-        optimizer = torch.optim.Adam(self.parameters(), lr=0.01)
-        for epoch in range(epochs):
-            for data in train_loader:  # Assuming data is a batch from DataLoader
-                optimizer.zero_grad()
-                output, h = self(data)
-                train_loss = func.cross_entropy(output, data.y, weight=class_weights)
-                train_loss.backward()
-                optimizer.step()
+    label = []
+    pred = []
+    train_loss_all = 0
+    for data in loader:
+        data = data.to(device)
+        optimizer.zero_grad()
+        output = model(data)
 
-    def score(self, test_loader):
-        self.eval()  # 모델을 평가 모드로 설정
+        train_loss = func.nll_loss(output, data.y, weight=weight)
 
-        pred = []
-        label = []
-        with torch.no_grad():  # 그라디언트 계산을 중지
-            for data in test_loader:
-                output, h = self(data)
-                pred.append((func.softmax(output, dim=1)[:, 1]>0.5).type(torch.int))
-                label.append(data.y)
+        train_loss_all += data.num_graphs * train_loss.item()
+        pred.append(output.argmax(dim=1))
+        label.append(data.y)
 
-            y_pred = torch.cat(pred, dim=0).cpu().detach().numpy()
-            y_true = torch.cat(label, dim=0).cpu().detach().numpy()
+        train_loss.backward()
+        optimizer.step()
 
-            tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
-            epoch_sen = recall_score(y_true, y_pred)
-            epoch_spe = tn / (tn + fp)
-            epoch_bac = balanced_accuracy_score(y_true, y_pred)
+    y_pred = torch.cat(pred, dim=0).cpu().detach().numpy()
+    y_true = torch.cat(label, dim=0).cpu().detach().numpy()
 
-        #return epoch_sen, epoch_spe, epoch_bac
-        return epoch_bac
+    tn, fp, fn, tp = confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
+    epoch_sen = recall_score(y_true, y_pred)
+    epoch_spe = tn / (tn + fp)
+    epoch_bac = balanced_accuracy_score(y_true, y_pred)
+    return epoch_sen, epoch_spe, epoch_bac, train_loss_all / len_train_dataset
 
-    def get_params(self, deep=True):
-        # 생성자에 전달된 모든 매개변수와 그 값을 반환합니다.
-        return {'num_features': self.conv1.in_channels,
-                'num_classes': self.lin1.out_features,
-                'k_order': self.k,
-                'dropout': self.p}
+def GCN_test(model, optimizer, loader, weight, len_val_dataset, n_fold, epoch, device='cpu', savefiglog=True):
+    model.eval()
+
+    #score=[]
+    pred = []
+    label = []
+    val_loss_all = 0
+    for data in loader:
+        data = data.to(device)
+        output = model(data)
+
+        if torch.isnan(output)[0,0]:
+            print('WARNING!!!!!!!!!!!!!!!!!!output is nan')
+            return np.nan, np.nan, np.nan, np.nan
+
+        val_loss = func.nll_loss(output, data.y, weight=weight)
+        val_loss_all += data.num_graphs * val_loss.item()
+
+        pred.append(output.argmax(dim=1))
+        label.append(data.y)
+        #score.append(func.softmax(output, dim=1)[:, 1]) 
+        if savefiglog: print(f'{n_fold+1} fold | {epoch} epoch | predict_prob : {output}')
+
+    y_pred = torch.cat(pred, dim=0).cpu().detach().numpy()
+    y_true = torch.cat(label, dim=0).cpu().detach().numpy()
+    #y_score = torch.cat(score, dim=0).cpu().detach().numpy()
+
+    if savefiglog: 
+        print(f'{n_fold+1} fold | {epoch} epoch | y_true : {y_true}')
+        print(f'{n_fold+1} fold | {epoch} epoch | y_pred : {y_pred}')
+
+    tn, fp, fn, tp = confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
+    epoch_sen = recall_score(y_true, y_pred)
+    epoch_spe = tn / (tn + fp)
+    epoch_bac = balanced_accuracy_score(y_true, y_pred)
+    return epoch_sen, epoch_spe, epoch_bac, val_loss_all / len_val_dataset
