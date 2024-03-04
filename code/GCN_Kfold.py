@@ -29,15 +29,13 @@ k_order = 10 # KNN
 n_epoch = 50
 th=0.5
 #class_weights=torch.tensor([0.72,1.66])
-param_grid = {'class_weights':[torch.tensor([0.8,1.66]),torch.tensor([0.9,1.66]),torch.tensor([1,1.66]), torch.tensor([1,1.5]), torch.tensor([1,1.4])]}
+param_grid = {'class_weights':[torch.tensor([1.0,1.0]),torch.tensor([1.5,1.5]),torch.tensor([2.0,2.0]), torch.tensor([1.0,1.1]), torch.tensor([1.0,1.2])]}
 UpsamplingExists = True
 #criterion = 'focal'
 criterion = 'CE'
 
 def GCN_train(loader):
     model.train()
-
-    #grid_search.fit(loader)
 
     label = []
     pred = []
@@ -104,12 +102,14 @@ def GCN_test(loader):
     return epoch_sen, epoch_spe, epoch_bac, val_loss_all / len(val_dataset)
 
 for class_weights in param_grid['class_weights']:
+    
     # dataset + parcels + combat + upsampling + loss func + n_epoch
     filename = f'data0_164pc_cbtX_upO_{criterion}({class_weights})_{n_epoch}epc'
 
     sys.stdout = open(f'results/stdouts/{filename}.txt', 'w')
     ##########################################################################################
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device='cpu'
 
     dataset = FCGraphDataset('data')
     skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=0)
@@ -133,6 +133,8 @@ for class_weights in param_grid['class_weights']:
     # HC, SCZ = HC_SCZ_SiteEffectExists()
     # print(f"Combat 전 - HC - Site Effect Rate : {HC}")
     # print(f"Combat 전 - SCZ - Site Effect Rate : {SCZ}")
+
+    class_weights=class_weights.to(device)
 
     for n_fold, (train_val, test) in enumerate(skf.split(labels, labels)):  
         print(f'=============== {n_fold+1} fold ===============')
