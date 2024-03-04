@@ -45,45 +45,6 @@ class GCN(torch.nn.Module):
         out = self.lin1(h)
         return func.log_softmax(out, dim=1)
     
-    def fit(self, train_loader, epochs=50):
-        self.train()
-
-        optimizer = torch.optim.Adam(self.parameters(), lr=0.001, weight_decay=5e-4)
-        for epoch in range(epochs):
-            for data in train_loader:  # Assuming data is a batch from DataLoader
-                optimizer.zero_grad()
-                output = self(data)
-                train_loss = func.nll_loss(output, data.y, weight=torch.tensor([0.72,1.66]))
-                train_loss.backward()
-                optimizer.step()
-        print("!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-
-    def score(self, test_loader):
-        self.eval()
-
-        pred = []
-        label = []
-        with torch.no_grad():
-            for data in test_loader:
-                output= self(data)
-                pred.append(output.argmax(dim=1))
-                label.append(data.y)
-
-            y_pred = torch.cat(pred, dim=0).cpu().detach().numpy()
-            y_true = torch.cat(label, dim=0).cpu().detach().numpy()
-
-            tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
-            epoch_sen = recall_score(y_true, y_pred)
-            epoch_spe = tn / (tn + fp)
-            epoch_bac = balanced_accuracy_score(y_true, y_pred)
-        return epoch_bac
-
-    def get_params(self, deep=True):
-        return {'num_features': self.conv1.in_channels,
-                'num_classes': self.lin1.out_features,
-                'k_order': self.k,
-                'dropout': self.p}
-    
 def GCN_train(model, optimizer, loader, weight, len_train_dataset, device='cpu'):
     model.train()
 
@@ -107,13 +68,13 @@ def GCN_train(model, optimizer, loader, weight, len_train_dataset, device='cpu')
     y_pred = torch.cat(pred, dim=0).cpu().detach().numpy()
     y_true = torch.cat(label, dim=0).cpu().detach().numpy()
 
-    tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
+    tn, fp, fn, tp = confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
     epoch_sen = recall_score(y_true, y_pred)
     epoch_spe = tn / (tn + fp)
     epoch_bac = balanced_accuracy_score(y_true, y_pred)
     return epoch_sen, epoch_spe, epoch_bac, train_loss_all / len_train_dataset
 
-def GCN_test(model, optimizer, loader, weight, len_val_dataset, n_fold, epoch, device='cpu'):
+def GCN_test(model, optimizer, loader, weight, len_val_dataset, n_fold, epoch, device='cpu', savefiglog=True):
     model.eval()
 
     #score=[]
@@ -134,16 +95,17 @@ def GCN_test(model, optimizer, loader, weight, len_val_dataset, n_fold, epoch, d
         pred.append(output.argmax(dim=1))
         label.append(data.y)
         #score.append(func.softmax(output, dim=1)[:, 1]) 
-        print(f'{n_fold+1} fold | {epoch} epoch | predict_prob : {output}')
+        if savefiglog: print(f'{n_fold+1} fold | {epoch} epoch | predict_prob : {output}')
 
     y_pred = torch.cat(pred, dim=0).cpu().detach().numpy()
     y_true = torch.cat(label, dim=0).cpu().detach().numpy()
     #y_score = torch.cat(score, dim=0).cpu().detach().numpy()
 
-    print(f'{n_fold+1} fold | {epoch} epoch | y_true : {y_true}')
-    print(f'{n_fold+1} fold | {epoch} epoch | y_pred : {y_pred}')
+    if savefiglog: 
+        print(f'{n_fold+1} fold | {epoch} epoch | y_true : {y_true}')
+        print(f'{n_fold+1} fold | {epoch} epoch | y_pred : {y_pred}')
 
-    tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
+    tn, fp, fn, tp = confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
     epoch_sen = recall_score(y_true, y_pred)
     epoch_spe = tn / (tn + fp)
     epoch_bac = balanced_accuracy_score(y_true, y_pred)
