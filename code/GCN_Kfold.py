@@ -145,3 +145,4 @@ def GCN_Kfold(dataset, labels, batch, param_grid, skf,
         if savefiglog: sys.stdout.close()
 
         return eval_metrics, train_met
+        # merge
