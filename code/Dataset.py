@@ -27,11 +27,13 @@ class FCGraphDataset(InMemoryDataset):
         return ['data.pt']
 
     def process(self):
-        self.labels = pd.read_csv(Path(self.raw_dir)/'Labels_164parcels.csv').loc[:,'diagnosis']
+        self.labels = pd.read_csv(Path(self.raw_dir)/'Labels_116parcels.csv').loc[:,'diagnosis']
         self.labels = self.labels.map({'CONTROL' : 0, 'SCHZ' : 1}).values
 
         data_list=[]
+        a=1
         for filepath, y in zip(self.raw_paths, self.labels):
+            a += 1
             y = torch.tensor(y)
 
             connectivity = np.load(filepath)
@@ -42,6 +44,8 @@ class FCGraphDataset(InMemoryDataset):
             edge_index, edge_attr = dense_to_sparse(adj)
 
             data_list.append(Data(x=x, y=y, edge_index=edge_index, edge_attr=edge_attr))
+        
+        print(a)
 
         if self.pre_filter is not None:
             data_list = [data for data in data_list if self.pre_filter(data)]

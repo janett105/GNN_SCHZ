@@ -21,22 +21,18 @@ n_splits = 10
 n_metrics = 3  
 k_order = 6
 n_epoch = 50
-
-
-
-parcel='116'
+# 설정값
 #th=0.5
-labels = pd.read_csv(f'data/raw/Labels_{parcel}parcels.csv').loc[:,'diagnosis']
-labels = labels.map({'CONTROL' : 0, 'SCHZ' : 1}).values
-class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(labels), y=labels)
-print(class_weights)
-param_grid = {'class_weights':[class_weights, torch.tensor([1,1])]}
-#UpsamplingExists = False
+param_grid = {'class_weights':[torch.tensor([1.0, 1.0])]}
+UpsamplingExists = True
 CombatExists = False
-
+parcel = 116
 
 dataset = FCGraphDataset('data')
-batch = pd.read_csv(f'data/raw/Labels_{parcel}parcels.csv').loc[:,'dataset']
+whole = pd.read_csv(f'data/raw/Labels_{parcel}parcels.csv')
+labels = whole.loc[:,'diagnosis']
+labels = labels.map({'CONTROL' : 0, 'SCHZ' : 1}).values
+batch = whole.loc[:,'dataset']
 batch = batch.map({'UCLA_CNP' : 0, 'COBRE' : 1}).values
 skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=0)
 
@@ -49,6 +45,8 @@ print("====================================================================")
 # HC, SCZ = HC_SCZ_SiteEffectExists()
 # print(f"Combat 전 - HC - Site Effect Rate : {HC}")
 # print(f"Combat 전 - SCZ - Site Effect Rate : {SCZ}")
+
+
 #########################################################################################################################
 def GCN_Kfold(dataset, labels, batch, param_grid, skf, 
                 CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, parcel,
@@ -178,9 +176,7 @@ def GCN_Kfold(dataset, labels, batch, param_grid, skf,
 
         if savfig:sys.stdout.close()
         return eval_metrics, train_metrics
-
-for i in range(2):
-    UpsamplingExists=bool(i)
-    GCN_Kfold(dataset, labels, batch, param_grid, skf, 
+    
+GCN_Kfold(dataset, labels, batch, param_grid, skf, 
                 CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, 
                 device, savfig=True)
