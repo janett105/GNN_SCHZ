@@ -20,11 +20,18 @@ n_splits = 10
 n_metrics = 3  
 k_order = 6
 n_epoch = 50
+# 설정값
+#th=0.5
+param_grid = {'class_weights':[torch.tensor([1.0, 1.0])]}
+UpsamplingExists = True
+CombatExists = False
+parcel = 116
 
 dataset = FCGraphDataset('data')
-labels = pd.read_csv('data/raw/Labels_164parcels.csv').loc[:,'diagnosis']
+whole = pd.read_csv(f'data/raw/Labels_{parcel}parcels.csv')
+labels = whole.loc[:,'diagnosis']
 labels = labels.map({'CONTROL' : 0, 'SCHZ' : 1}).values
-batch = pd.read_csv('data/raw/Labels_164parcels.csv').loc[:,'dataset']
+batch = whole.loc[:,'dataset']
 batch = batch.map({'UCLA_CNP' : 0, 'COBRE' : 1}).values
 skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=0)
 
@@ -38,19 +45,15 @@ print("====================================================================")
 # print(f"Combat 전 - HC - Site Effect Rate : {HC}")
 # print(f"Combat 전 - SCZ - Site Effect Rate : {SCZ}")
 
-# 설정값
-#th=0.5
-param_grid = {'class_weights':[torch.tensor([1.0, 1.0])]}
-UpsamplingExists = False
-CombatExists = False
+
 #########################################################################################################################
 def GCN_Kfold(dataset, labels, batch, param_grid, skf, 
-                CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, 
+                CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, parcel,
                 device, savfig=True):
     for class_weights in param_grid['class_weights']:
         if savfig:
             # dataset + parcels + combat + upsampling + loss func + n_epoch
-            filename = f'data0_164pc_cbt{"O" if CombatExists else"X"}_up{"O" if UpsamplingExists else "X"}_{class_weights}_{n_epoch}epc'
+            filename = f'data0_{parcel}pc_cbt{"O" if CombatExists else"X"}_up{"O" if UpsamplingExists else "X"}_{class_weights}_{n_epoch}epc'
             sys.stdout = open(f'results/stdouts/new/{filename}.txt', 'w')
         
         eval_metrics = np.zeros((n_splits, n_metrics))
@@ -174,5 +177,5 @@ def GCN_Kfold(dataset, labels, batch, param_grid, skf,
         return eval_metrics, train_metrics
     
 GCN_Kfold(dataset, labels, batch, param_grid, skf, 
-                CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, 
+                CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, parcel,
                 device, savfig=True)
