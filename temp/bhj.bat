@@ -1,3 +1,0 @@
-@echo off
-set c=sub-10171 sub-10193 sub-10217 sub-10227 sub-10228 sub-10339 sub-10376 sub-10471 sub-10525 sub-10678 sub-10697 sub-10724 sub-10746 sub-10788 sub-10871 sub-10912 sub-10948 sub-10958 sub-11067 sub-11082 sub-11104 sub-11128 sub-11131 sub-50006 sub-50033 sub-50034 sub-50069 sub-50077 sub-50080 sub-60020 sub-60030 sub-60052 sub-60057 sub-60076 sub-60079 sub-60080 sub-70001 sub-70002 sub-70020 sub-70052 sub-70072 sub-70074
-FOR %%i IN (%c%) do xcopy "%%i" "Z:\MRI\UCLA_CNP\gdshfj\" /s /e /i

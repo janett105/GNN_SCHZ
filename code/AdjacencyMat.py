@@ -2,7 +2,7 @@ import numpy as np
 from scipy.spatial import distance
 from scipy.sparse import coo_matrix, csr
 
-def compute_KNN_graph(matrix, k_degree=10, metric='euclidean'):
+def compute_KNN_graph(matrix, k_degree=3, metric='euclidean'):
     """ Calculate the adjacency matrix from the connectivity matrix."""
 
     dist = distance.pdist(matrix, metric)
@@ -10,10 +10,11 @@ def compute_KNN_graph(matrix, k_degree=10, metric='euclidean'):
 
     idx = np.argsort(dist)[:, 1:k_degree + 1]
     dist.sort()
+    print(np.round(dist,decimals=1))
     dist = dist[:, 1:k_degree + 1]
 
     A = adjacency(dist, idx).astype(np.float32)
-
+    print(np.round(A,1))
     return A
 
 def adjacency(dist, idx):
@@ -25,12 +26,14 @@ def adjacency(dist, idx):
     # Weights.
     sigma2 = np.mean(dist[:, -1]) ** 2
     dist = np.exp(- dist ** 2 / sigma2)
+    print(np.round(dist,1))
 
     # Weight matrix.
     I = np.arange(0, m).repeat(k)
     J = idx.reshape(m * k)
     V = dist.reshape(m * k)
     W = coo_matrix((V, (I, J)), shape=(m, m))
+    print(np.round(W,1))
 
     # No self-connections.
     W.setdiag(0)

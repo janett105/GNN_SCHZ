@@ -40,9 +40,9 @@ def vizMetrics(historys_loss, historys_sen, historys_spe, historys_bac, filename
         else:
             plt.ylim([0,1])
 
-        createDirectory(f'results/figs//new/{filename}')
+        createDirectory(f'results/figs/new/{filename}')
         plt.savefig(f'results/figs/new/{filename}/{metname}.png')
-        plt.show()
+        #plt.show()
 
 
 

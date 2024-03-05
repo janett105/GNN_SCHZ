@@ -1,17 +1,21 @@
 import glob
 import pandas as pd
 
-whole = pd.read_csv('data/raw/phenotype.csv')
-c= whole['participant_id']
+# 기존 phenotype에서 fmri-prep + FC 생성 가능한 subject 리스트 생성
+original_df = pd.read_csv('phenotype.csv')
+c= original_df.iloc[:, 0]
 
-a = glob.glob('data/raw/*.npy')
-b=[]
-for word in a:
+FCfile = glob.glob('*.npy')
+filelst=[]
+print(filelst)
+for word in FCfile:
     temp = word.replace('data/raw\\FC116_','')
     temp = temp.replace('.npy', '')
-    b.append(temp)
-B=pd.DataFrame(b, columns=['participant_id'])
+    filelst.append(temp)
+FC_df=pd.DataFrame(filelst, columns=['participant_id'])
 
-d = pd.merge(whole, B, how='inner', on='participant_id')
+new_df = pd.merge(original_df, FC_df, how='inner', on='participant_id')
 
-d.to_csv('data/raw/Labels_116parcels.csv', index=False)
+new_df['Dataset'] = 'COBRE'
+
+new_df.to_csv('Labels_164parcels.csv', index=False)

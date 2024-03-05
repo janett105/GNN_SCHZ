@@ -31,21 +31,28 @@ class FCGraphDataset(InMemoryDataset):
         self.labels = self.labels.map({'CONTROL' : 0, 'SCHZ' : 1}).values
 
         data_list=[]
-        a=1
         for filepath, y in zip(self.raw_paths, self.labels):
-            a += 1
             y = torch.tensor(y)
 
-            connectivity = np.load(filepath)
+            connectivity = np.array([[0,5,2,4,9],
+                                     [5,0,7,10,3],
+                                     [2,7,0,1,6],
+                                     [4,10,1,0,8],
+                                     [9,3,6,8,0]])
+            print()
+            print(connectivity)
+            #connectivity = np.load(filepath)
             x = torch.from_numpy(connectivity).float()
 
             adj = compute_KNN_graph(connectivity)
             adj = torch.from_numpy(adj).float()
+            print()
+            print(np.round(adj,1))
             edge_index, edge_attr = dense_to_sparse(adj)
-
+            print()
+            print(edge_index)
+            print(np.round(edge_attr,1))
             data_list.append(Data(x=x, y=y, edge_index=edge_index, edge_attr=edge_attr))
-        
-        print(a)
 
         if self.pre_filter is not None:
             data_list = [data for data in data_list if self.pre_filter(data)]
@@ -54,3 +61,5 @@ class FCGraphDataset(InMemoryDataset):
             data_list = [self.pre_transform(data) for data in data_list]
 
         self.save(data_list, self.processed_paths[0])
+
+dataset = FCGraphDataset('data')

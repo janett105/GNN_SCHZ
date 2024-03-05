@@ -23,8 +23,7 @@ k_order = 6
 n_epoch = 50
 # 설정값
 #th=0.5
-param_grid = {'class_weights':[torch.tensor([1.0, 1.0])]}
-UpsamplingExists = True
+#UpsamplingExists = True
 CombatExists = False
 parcel = 116
 
@@ -36,6 +35,8 @@ batch = whole.loc[:,'dataset']
 batch = batch.map({'UCLA_CNP' : 0, 'COBRE' : 1}).values
 skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=0)
 
+balanced_class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(labels), y=labels)
+param_grid = {'class_weights':[torch.tensor(balanced_class_weights.astype(np.float32)), torch.tensor([1.0, 1.0])]}
 print()
 print(dataset)
 print(dataset[0])
@@ -45,8 +46,6 @@ print("====================================================================")
 # HC, SCZ = HC_SCZ_SiteEffectExists()
 # print(f"Combat 전 - HC - Site Effect Rate : {HC}")
 # print(f"Combat 전 - SCZ - Site Effect Rate : {SCZ}")
-
-
 #########################################################################################################################
 def GCN_Kfold(dataset, labels, batch, param_grid, skf, 
                 CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, parcel,
@@ -176,7 +175,10 @@ def GCN_Kfold(dataset, labels, batch, param_grid, skf,
 
         if savfig:sys.stdout.close()
         return eval_metrics, train_metrics
-    
-GCN_Kfold(dataset, labels, batch, param_grid, skf, 
-                CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, 
-                device, savfig=True)
+
+
+for i in range(2):
+    UpsamplingExists=bool(i)
+    GCN_Kfold(dataset, labels, batch, param_grid, skf, 
+                    CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, parcel,
+                    device, savfig=True)
