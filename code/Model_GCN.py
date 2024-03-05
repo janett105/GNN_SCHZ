@@ -89,7 +89,7 @@ def GCN_test(model, loader, weight, len_val_dataset, n_fold, epoch, device='cpu'
             print('WARNING!!!!!!!!!!!!!!!!!!output is nan')
             return np.nan, np.nan, np.nan, np.nan
 
-        val_loss = func.nll_loss(output, data.y, weight=weight.to(device))
+        val_loss = func.nll_loss(output, data.y)
         val_loss_all += data.num_graphs * val_loss.item()
 
         pred.append(output.argmax(dim=1))

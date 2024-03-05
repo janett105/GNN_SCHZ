@@ -17,11 +17,18 @@ n_splits = 10
 n_metrics = 3  
 k_order = 6
 n_epoch = 50
+# 설정값
+#th=0.5
+param_grid = {'class_weights':[torch.tensor([0.72, 1.66])]}
+UpsamplingExists = False
+CombatExists = False
+parcel ='116'
+filename = f'data0_{parcel}pc_cbt{"O" if CombatExists else"X"}_up{"O" if UpsamplingExists else "X"}_{param_grid["class_weights"]}_{n_epoch}epc'
 
 dataset = FCGraphDataset('data')
-labels = pd.read_csv('data/raw/Labels_164parcels.csv').loc[:,'diagnosis']
+labels = pd.read_csv(f'data/raw/Labels_{parcel}parcels.csv').loc[:,'diagnosis']
 labels = labels.map({'CONTROL' : 0, 'SCHZ' : 1}).values
-batch = pd.read_csv('data/raw/Labels_164parcels.csv').loc[:,'dataset']
+batch = pd.read_csv(f'data/raw/Labels_{parcel}parcels.csv').loc[:,'dataset']
 batch = batch.map({'UCLA_CNP' : 0, 'COBRE' : 1}).values
 skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=0)
 
@@ -34,13 +41,6 @@ print("====================================================================")
 # HC, SCZ = HC_SCZ_SiteEffectExists()
 # print(f"Combat 전 - HC - Site Effect Rate : {HC}")
 # print(f"Combat 전 - SCZ - Site Effect Rate : {SCZ}")
-
-# 설정값
-#th=0.5
-param_grid = {'class_weights':[torch.tensor([0.72, 1.66])]}
-UpsamplingExists = False
-CombatExists = False
-filename = f'data0_164pc_cbt{"O" if CombatExists else"X"}_up{"O" if UpsamplingExists else "X"}_{param_grid["class_weights"]}_{n_epoch}epc'
 #########################################################################################################################
 #GCN_Kfold(dataset, labels, batch, param_grid, skf, CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, dataset.num_features, dataset.num_classes, device, savefiglog=False)
 
@@ -74,7 +74,7 @@ for datarate in [0.2, 0.4, 0.6, 0.8, 1]:
         lendataset = dataset[lenidx.tolist()]
 
         testeval, traineval = GCN_Kfold(lendataset, lenlabels, lenbatch, param_grid, skf, 
-                            CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, 
+                            CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, parcel, 
                             device, savfig=False)
         
     testlrndata['sen_avg'].append(testeval[:, 0].mean()) 

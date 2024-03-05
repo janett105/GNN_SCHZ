@@ -6,6 +6,7 @@ import sys
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from torch_geometric.loader import DataLoader, ImbalancedSampler
 from neurocombat_sklearn import CombatModel
+from sklearn.utils.class_weight import compute_class_weight
 
 from Model_GCN import GCN, GCN_train, GCN_test
 from Dataset import FCGraphDataset
@@ -21,10 +22,21 @@ n_metrics = 3
 k_order = 6
 n_epoch = 50
 
-dataset = FCGraphDataset('data')
-labels = pd.read_csv('data/raw/Labels_164parcels.csv').loc[:,'diagnosis']
+
+
+parcel='116'
+#th=0.5
+labels = pd.read_csv(f'data/raw/Labels_{parcel}parcels.csv').loc[:,'diagnosis']
 labels = labels.map({'CONTROL' : 0, 'SCHZ' : 1}).values
-batch = pd.read_csv('data/raw/Labels_164parcels.csv').loc[:,'dataset']
+class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(labels), y=labels)
+print(class_weights)
+param_grid = {'class_weights':[class_weights, torch.tensor([1,1])]}
+#UpsamplingExists = False
+CombatExists = False
+
+
+dataset = FCGraphDataset('data')
+batch = pd.read_csv(f'data/raw/Labels_{parcel}parcels.csv').loc[:,'dataset']
 batch = batch.map({'UCLA_CNP' : 0, 'COBRE' : 1}).values
 skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=0)
 
@@ -37,20 +49,14 @@ print("====================================================================")
 # HC, SCZ = HC_SCZ_SiteEffectExists()
 # print(f"Combat 전 - HC - Site Effect Rate : {HC}")
 # print(f"Combat 전 - SCZ - Site Effect Rate : {SCZ}")
-
-# 설정값
-#th=0.5
-param_grid = {'class_weights':[torch.tensor([1.0, 1.0])]}
-UpsamplingExists = False
-CombatExists = False
 #########################################################################################################################
 def GCN_Kfold(dataset, labels, batch, param_grid, skf, 
-                CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, 
+                CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, parcel,
                 device, savfig=True):
     for class_weights in param_grid['class_weights']:
         if savfig:
             # dataset + parcels + combat + upsampling + loss func + n_epoch
-            filename = f'data0_164pc_cbt{"O" if CombatExists else"X"}_up{"O" if UpsamplingExists else "X"}_{class_weights}_{n_epoch}epc'
+            filename = f'data0_{parcel}pc_cbt{"O" if CombatExists else"X"}_up{"O" if UpsamplingExists else "X"}_{class_weights}_{n_epoch}epc'
             sys.stdout = open(f'results/stdouts/new/{filename}.txt', 'w')
         
         eval_metrics = np.zeros((n_splits, n_metrics))
@@ -172,7 +178,9 @@ def GCN_Kfold(dataset, labels, batch, param_grid, skf,
 
         if savfig:sys.stdout.close()
         return eval_metrics, train_metrics
-    
-GCN_Kfold(dataset, labels, batch, param_grid, skf, 
+
+for i in range(2):
+    UpsamplingExists=bool(i)
+    GCN_Kfold(dataset, labels, batch, param_grid, skf, 
                 CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, 
                 device, savfig=True)
