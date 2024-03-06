@@ -24,7 +24,7 @@ n_epoch = 50
 # 설정값
 #th=0.5
 #UpsamplingExists = True
-CombatExists = False
+CombatExists = True
 parcel = 116
 data_name='data01'
 
@@ -37,6 +37,7 @@ batch = batch.map({'UCLA_CNP' : 0, 'COBRE' : 1}).values
 skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=0)
 
 balanced_class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(labels), y=labels)
+#param_grid = {'class_weights':[torch.tensor([1.0, 1.0])]}
 param_grid = {'class_weights':[torch.tensor(balanced_class_weights.astype(np.float32)), torch.tensor([1.0, 1.0])]}
 print()
 print(dataset)
@@ -71,7 +72,7 @@ def GCN_Kfold(dataset, labels, batch, param_grid, skf,
             print(f'=============== {n_fold+1} fold ===============')
             model = GCN(dataset.num_features, dataset.num_classes, k_order).to(device)
             optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)
-            #cbt = CombatModel()
+            
 
             train_val_dataset, test_dataset = dataset[train_val.tolist()], dataset[test.tolist()]
             train_val_labels = labels[train_val]    
@@ -83,15 +84,15 @@ def GCN_Kfold(dataset, labels, batch, param_grid, skf,
             train_dataset, val_dataset = train_val_dataset[train_idx.tolist()], train_val_dataset[val_idx.tolist()]
 
             # Combat harmonization
-            # train_x = train_dataset.x
-            # val_x = val_dataset.x
-            # test_x = test_dataset.x
-            # adjusted_train_x = cbt.fit_transform(x=train_x, sites=train_batch, discrete_covariates = train_labels)
-            # train_dataset.x = adjusted_train_x
-            # adjusted_val_x = cbt.fit_transform(x=val_x, sites=val_batch, discrete_covariates = val_labels)
-            # val_dataset.x = adjusted_val_x
-            # adjusted_test_x = cbt.transform(x=test_x, sites=test_batch)
-            # test_dataset.x = adjusted_test_x
+            train_x = train_dataset.x
+            val_x = val_dataset.x
+            test_x = test_dataset.x
+            adjusted_train_x = cbt.fit_transform(x=train_x, sites=train_batch, discrete_covariates = train_labels)
+            train_dataset.x = adjusted_train_x
+            adjusted_val_x = cbt.fit_transform(x=val_x, sites=val_batch, discrete_covariates = val_labels)
+            val_dataset.x = adjusted_val_x
+            adjusted_test_x = cbt.transform(x=test_x, sites=test_batch)
+            test_dataset.x = adjusted_test_x
 
             if UpsamplingExists==True:
                 train_sampler = ImbalancedSampler(train_dataset)

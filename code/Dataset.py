@@ -28,21 +28,19 @@ class FCGraphDataset(InMemoryDataset):
 
     def process(self):
         self.labels = pd.read_csv(Path(self.raw_dir)/'Labels_116parcels.csv').loc[:,'diagnosis']
-        self.labels = self.labels.map({'CONTROL' : 0, 'SCHZ' : 1}).values
+        self.labels = self.labels.map({'HC' : 0, 'SCHZ' : 1}).values
 
         data_list=[]
         for filepath, y in zip(self.raw_paths, self.labels):
             y = torch.tensor(y)
-            connectivity = np.array([[0,5,2,4,9],
-                                     [5,0,7,10,3],
-                                     [2,7,0,1,6],
-                                     [4,10,1,0,8],
-                                     [9,3,6,8,0]])
-            #connectivity = np.load(filepath)
+
+            connectivity = np.load(filepath)
             x = torch.from_numpy(connectivity).float()
+
             adj = compute_KNN_graph(connectivity)
             adj = torch.from_numpy(adj).float()
             edge_index, edge_attr = dense_to_sparse(adj)
+
             data_list.append(Data(x=x, y=y, edge_index=edge_index, edge_attr=edge_attr))
 
         if self.pre_filter is not None:
