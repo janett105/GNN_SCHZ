@@ -78,6 +78,7 @@ def GCN_Kfold(dataset, labels, batch, param_grid, skf,
             train_val_index = np.arange(len(train_val_dataset))
             train_val_batch = batch[train_val]
             test_batch = batch[test]
+            test_labels = labels[test]
             train_idx, val_idx, train_labels, val_labels, train_batch, val_batch  = train_test_split(train_val_index, train_val_labels, train_val_batch, 
                                                                                                     test_size=0.11, shuffle=True, stratify=train_val_labels)
             train_dataset, val_dataset = train_val_dataset[train_idx.tolist()], train_val_dataset[val_idx.tolist()]
@@ -86,19 +87,18 @@ def GCN_Kfold(dataset, labels, batch, param_grid, skf,
                 # Combat harmonization
                 cbt=CombatModel()
 
-                CombatHrm(cbt,parcel,
-                        train_dataset, train_batch, train_labels,
-                        val_dataset, val_batch,
-                        test_dataset, test_batch)
-                print('combat 진짜 후 : ', train_dataset[0])
+                cbt_traindata_list, cbt_valdata_list, cbt_testdata_list= CombatHrm(cbt,parcel,
+                                                                                    train_dataset, train_batch, train_labels,
+                                                                                    val_dataset, val_batch,val_labels,
+                                                                                    test_dataset, test_batch, test_labels)
 
             if UpsamplingExists==True:
-                train_sampler = ImbalancedSampler(train_dataset)
-                train_loader = DataLoader(train_dataset, batch_size=64, sampler=train_sampler)
+                train_sampler = ImbalancedSampler(cbt_traindata_list)
+                train_loader = DataLoader(cbt_traindata_list, batch_size=64, sampler=train_sampler)
             else: 
-                train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
-            val_loader = DataLoader(val_dataset, batch_size=64, shuffle=True) 
-            test_loader = DataLoader(test_dataset, batch_size=64, shuffle=True)
+                train_loader = DataLoader(cbt_traindata_list, batch_size=64, shuffle=True)
+            val_loader = DataLoader(cbt_valdata_list, batch_size=64, shuffle=True) 
+            test_loader = DataLoader(cbt_testdata_list, batch_size=64, shuffle=True)
 
             min_v_loss = np.inf
             history_loss={'epoch':[], 't_loss':[], 'tt_loss':[]}
