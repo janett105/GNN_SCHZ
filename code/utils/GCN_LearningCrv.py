@@ -37,11 +37,10 @@ skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=0)
 
 balanced_class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(labels), y=labels)
 param_grid = {'class_weights':[torch.tensor(balanced_class_weights.astype(np.float32))]}
-print()
+
 print(dataset)
 print(dataset[0])
 print("====================================================================")
-filename = f'{data_name}_{parcel}pc_cbt{"O" if CombatExists else"X"}_up{"O" if UpsamplingExists else "X"}_{param_grid["class_weights"]}_{n_epoch}epc'
 
 # HC와 SCZ환자의 site effect 비율
 # HC, SCZ = HC_SCZ_SiteEffectExists()
@@ -120,6 +119,6 @@ for metname in ['sen', 'spe','bac']:
     plt.ylim([0, 1.03])
     plt.tight_layout()
 
-    createDirectory(f'LearningCrv/')
+    createDirectory(f'LearningCrv')
     plt.savefig(f'LearningCrv/{metname}.png')
     plt.show()
