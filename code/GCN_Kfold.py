@@ -8,13 +8,13 @@ from torch_geometric.loader import DataLoader, ImbalancedSampler
 from neurocombat_sklearn import CombatModel
 from sklearn.utils.class_weight import compute_class_weight
 
+from CombatHrm import CombatHrm
 from Model_GCN import GCN, GCN_train, GCN_test
 from Dataset import FCGraphDataset
 from utils.SiteEffect import HC_SCZ_SiteEffectExists
 from utils.makeDir import createDirectory
 from utils.vizMetrics import vizMetrics
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-#device='cpu'
 
 # 고정값
 n_splits = 10
@@ -37,8 +37,8 @@ batch = batch.map({'UCLA_CNP' : 0, 'COBRE' : 1}).values
 skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=0)
 
 balanced_class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(labels), y=labels)
-#param_grid = {'class_weights':[torch.tensor([1.0, 1.0])]}
-param_grid = {'class_weights':[torch.tensor(balanced_class_weights.astype(np.float32)), torch.tensor([1.0, 1.0])]}
+param_grid = {'class_weights':[torch.tensor([1.0, 1.0])]}
+#param_grid = {'class_weights':[torch.tensor(balanced_class_weights.astype(np.float32)), torch.tensor([1.0, 1.0])]}
 print()
 print(dataset)
 print(dataset[0])
@@ -51,12 +51,12 @@ print("====================================================================")
 #########################################################################################################################
 def GCN_Kfold(dataset, labels, batch, param_grid, skf, 
                 CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, parcel,data_name,
-                device, savfig=True):
+                device='cpu', savfig=True):
     for class_weights in param_grid['class_weights']:
         if savfig:
             # dataset + parcels + combat + upsampling + loss func + n_epoch
             filename = f'{data_name}_{parcel}pc_cbt{"O" if CombatExists else"X"}_up{"O" if UpsamplingExists else "X"}_{class_weights}_{n_epoch}epc'
-            sys.stdout = open(f'results/stdouts/new/{filename}.txt', 'w')
+            #sys.stdout = open(f'results/stdouts/new/{filename}.txt', 'w')
         
         eval_metrics = np.zeros((n_splits, n_metrics))
         train_metrics = np.zeros((n_splits, n_metrics))
@@ -73,7 +73,6 @@ def GCN_Kfold(dataset, labels, batch, param_grid, skf,
             model = GCN(dataset.num_features, dataset.num_classes, k_order).to(device)
             optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)
             
-
             train_val_dataset, test_dataset = dataset[train_val.tolist()], dataset[test.tolist()]
             train_val_labels = labels[train_val]    
             train_val_index = np.arange(len(train_val_dataset))
@@ -83,16 +82,15 @@ def GCN_Kfold(dataset, labels, batch, param_grid, skf,
                                                                                                     test_size=0.11, shuffle=True, stratify=train_val_labels)
             train_dataset, val_dataset = train_val_dataset[train_idx.tolist()], train_val_dataset[val_idx.tolist()]
 
-            # Combat harmonization
-            train_x = train_dataset.x
-            val_x = val_dataset.x
-            test_x = test_dataset.x
-            adjusted_train_x = cbt.fit_transform(x=train_x, sites=train_batch, discrete_covariates = train_labels)
-            train_dataset.x = adjusted_train_x
-            adjusted_val_x = cbt.fit_transform(x=val_x, sites=val_batch, discrete_covariates = val_labels)
-            val_dataset.x = adjusted_val_x
-            adjusted_test_x = cbt.transform(x=test_x, sites=test_batch)
-            test_dataset.x = adjusted_test_x
+            if CombatExists:
+                # Combat harmonization
+                cbt=CombatModel()
+
+                CombatHrm(cbt,
+                        train_dataset, train_batch, train_labels,
+                        val_dataset, val_batch,
+                        test_dataset, test_batch)
+                print('combat 진짜 후 : ', train_dataset[0])
 
             if UpsamplingExists==True:
                 train_sampler = ImbalancedSampler(train_dataset)
