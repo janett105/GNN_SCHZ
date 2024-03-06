@@ -25,8 +25,7 @@ def newdataset(dataset, labels, cbt_xarrays, parcel):
 
         cbt_adj = compute_KNN_graph(cbt_x)
         cbt_edge_index, cbt_edge_attr = dense_to_sparse(torch.tensor(cbt_adj))
-        if idx==0:print(cbt_x)
-        cbt_data_list.append(Data(x=cbt_x, y=labels[idx], edge_index=cbt_edge_index, edge_attr=cbt_edge_attr))
+        cbt_data_list.append(Data(x=cbt_x, y=torch.tensor(labels[idx]), edge_index=cbt_edge_index, edge_attr=cbt_edge_attr))
     return cbt_data_list
 
 def CombatHrm(cbt,parcel,
@@ -35,11 +34,12 @@ def CombatHrm(cbt,parcel,
               test_dataset, test_batch, test_labels):
     
     train_xarrays=diagtoary(train_dataset)
-    cbt_train_xarrays=cbt.fit_transform(data=train_xarrays, sites=train_batch.reshape(-1,1),  **{'discrete_covariates': train_labels.reshape(-1,1)})
+    #cbt_train_xarrays=cbt.fit_transform(data=train_xarrays, sites=train_batch.reshape(-1,1),  **{'discrete_covariates': train_labels.reshape(-1,1)})
+    cbt_train_xarrays=cbt.fit_transform(data=train_xarrays, sites=train_batch.reshape(-1,1))
     cbt_traindata_list=newdataset(train_dataset, train_labels, cbt_train_xarrays, parcel)
 
     val_xarrays=diagtoary(val_dataset)
-    cbt_val_xarrays=cbt.transform(data=val_xarrays, sites=val_batch.reshape(-1,1),  **{'discrete_covariates': val_labels.reshape(-1,1)})
+    cbt_val_xarrays=cbt.transform(data=val_xarrays, sites=val_batch.reshape(-1,1))
     cbt_valdata_list=newdataset(val_dataset, val_labels, cbt_val_xarrays, parcel)
 
     test_xarrays=diagtoary(test_dataset)
