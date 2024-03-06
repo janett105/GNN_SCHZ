@@ -3,6 +3,7 @@ import numpy as np
 import torch
 from sklearn.model_selection import StratifiedKFold, train_test_split
 import matplotlib.pyplot as plt
+from sklearn.utils.class_weight import compute_class_weight
 
 from makeDir import createDirectory
 import sys,os
@@ -19,19 +20,21 @@ k_order = 6
 n_epoch = 50
 # 설정값
 #th=0.5
-param_grid = {'class_weights':[torch.tensor([0.72, 1.66])]}
-UpsamplingExists = False
+#UpsamplingExists = True
 CombatExists = False
-parcel ='116'
-filename = f'data0_{parcel}pc_cbt{"O" if CombatExists else"X"}_up{"O" if UpsamplingExists else "X"}_{param_grid["class_weights"]}_{n_epoch}epc'
+parcel = 116
+data_name='data01'
 
 dataset = FCGraphDataset('data')
-labels = pd.read_csv(f'data/raw/Labels_{parcel}parcels.csv').loc[:,'diagnosis']
-labels = labels.map({'CONTROL' : 0, 'SCHZ' : 1}).values
-batch = pd.read_csv(f'data/raw/Labels_{parcel}parcels.csv').loc[:,'dataset']
+whole = pd.read_csv(f'data/raw/Labels_{parcel}parcels.csv')
+labels = whole.loc[:,'diagnosis']
+labels = labels.map({'HC' : 0, 'SCHZ' : 1}).values
+batch = whole.loc[:,'dataset']
 batch = batch.map({'UCLA_CNP' : 0, 'COBRE' : 1}).values
 skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=0)
 
+balanced_class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(labels), y=labels)
+param_grid = {'class_weights':[torch.tensor(balanced_class_weights.astype(np.float32)), torch.tensor([1.0, 1.0])]}
 print()
 print(dataset)
 print(dataset[0])
@@ -65,7 +68,7 @@ for datarate in [0.2, 0.4, 0.6, 0.8, 1]:
 
     if datarate==1:
         testeval, traineval = GCN_Kfold(dataset, labels, batch, param_grid, skf, 
-                       CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, 
+                       CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, parcel, data_name,
                        device, savfig=True)
     else:
         idx=np.arange(len(dataset))
@@ -74,7 +77,7 @@ for datarate in [0.2, 0.4, 0.6, 0.8, 1]:
         lendataset = dataset[lenidx.tolist()]
 
         testeval, traineval = GCN_Kfold(lendataset, lenlabels, lenbatch, param_grid, skf, 
-                            CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, parcel, 
+                            CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, parcel, data_name,
                             device, savfig=False)
         
     testlrndata['sen_avg'].append(testeval[:, 0].mean()) 

@@ -26,11 +26,12 @@ n_epoch = 50
 #UpsamplingExists = True
 CombatExists = False
 parcel = 116
+data_name='data01'
 
 dataset = FCGraphDataset('data')
 whole = pd.read_csv(f'data/raw/Labels_{parcel}parcels.csv')
 labels = whole.loc[:,'diagnosis']
-labels = labels.map({'CONTROL' : 0, 'SCHZ' : 1}).values
+labels = labels.map({'HC' : 0, 'SCHZ' : 1}).values
 batch = whole.loc[:,'dataset']
 batch = batch.map({'UCLA_CNP' : 0, 'COBRE' : 1}).values
 skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=0)
@@ -48,12 +49,12 @@ print("====================================================================")
 # print(f"Combat 전 - SCZ - Site Effect Rate : {SCZ}")
 #########################################################################################################################
 def GCN_Kfold(dataset, labels, batch, param_grid, skf, 
-                CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, parcel,
+                CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, parcel,data_name,
                 device, savfig=True):
     for class_weights in param_grid['class_weights']:
         if savfig:
             # dataset + parcels + combat + upsampling + loss func + n_epoch
-            filename = f'data0_{parcel}pc_cbt{"O" if CombatExists else"X"}_up{"O" if UpsamplingExists else "X"}_{class_weights}_{n_epoch}epc'
+            filename = f'{data_name}_{parcel}pc_cbt{"O" if CombatExists else"X"}_up{"O" if UpsamplingExists else "X"}_{class_weights}_{n_epoch}epc'
             sys.stdout = open(f'results/stdouts/new/{filename}.txt', 'w')
         
         eval_metrics = np.zeros((n_splits, n_metrics))
@@ -179,5 +180,5 @@ def GCN_Kfold(dataset, labels, batch, param_grid, skf,
 for i in range(2):
     UpsamplingExists=bool(i)
     GCN_Kfold(dataset, labels, batch, param_grid, skf, 
-                    CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, parcel,
+                    CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, parcel,data_name,
                     device, savfig=True)
