@@ -29,11 +29,18 @@ class FCGraphDataset(InMemoryDataset):
     def process(self):
         self.labels = pd.read_csv(Path(self.raw_dir)/'Labels_116parcels.csv').loc[:,'diagnosis']
         self.labels = self.labels.map({'HC' : 0, 'SCHZ' : 1}).values
+<<<<<<< Updated upstream
+=======
+    
+>>>>>>> Stashed changes
 
         data_list=[]
         for filepath, y in zip(self.raw_paths, self.labels):
             y = torch.tensor(y)
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
             connectivity = np.load(filepath)
             x = torch.from_numpy(connectivity).float()
 
