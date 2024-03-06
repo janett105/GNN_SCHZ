@@ -24,7 +24,7 @@ n_epoch = 50
 # 설정값
 #th=0.5
 #UpsamplingExists = True
-CombatExists = True
+CombatExists = False
 parcel = 116
 data_name='data01'
 
@@ -96,9 +96,9 @@ def GCN_Kfold(dataset, labels, batch, param_grid, skf,
                 train_sampler = ImbalancedSampler(cbt_traindata_list)
                 train_loader = DataLoader(cbt_traindata_list, batch_size=64, sampler=train_sampler)
             else: 
-                train_loader = DataLoader(cbt_traindata_list, batch_size=64, shuffle=True)
-            val_loader = DataLoader(cbt_valdata_list, batch_size=64, shuffle=True) 
-            test_loader = DataLoader(cbt_testdata_list, batch_size=64, shuffle=True)
+                train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+            val_loader = DataLoader(val_dataset, batch_size=64, shuffle=True) 
+            test_loader = DataLoader(test_dataset, batch_size=64, shuffle=True)
 
             min_v_loss = np.inf
             history_loss={'epoch':[], 't_loss':[], 'tt_loss':[]}
@@ -176,8 +176,12 @@ def GCN_Kfold(dataset, labels, batch, param_grid, skf,
         if savfig:sys.stdout.close()
         return eval_metrics, train_metrics
 
-for i in range(2):
-    UpsamplingExists=bool(i)
-    GCN_Kfold(dataset, labels, batch, param_grid, skf, 
+# for i in range(2):
+#     UpsamplingExists=bool(i)
+#     GCN_Kfold(dataset, labels, batch, param_grid, skf, 
+#                     CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, parcel,data_name,
+#                     device, savfig=True)
+UpsamplingExists=False
+GCN_Kfold(dataset, labels, batch, param_grid, skf, 
                     CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, parcel,data_name,
                     device, savfig=True)
