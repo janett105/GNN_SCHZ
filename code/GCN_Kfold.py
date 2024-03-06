@@ -37,8 +37,8 @@ batch = batch.map({'UCLA_CNP' : 0, 'COBRE' : 1}).values
 skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=0)
 
 balanced_class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(labels), y=labels)
-param_grid = {'class_weights':[torch.tensor([1.0, 1.0])]}
-#param_grid = {'class_weights':[torch.tensor(balanced_class_weights.astype(np.float32)), torch.tensor([1.0, 1.0])]}
+#param_grid = {'class_weights':[torch.tensor([1.0, 1.0])]}
+param_grid = {'class_weights':[torch.tensor(balanced_class_weights.astype(np.float32)), torch.tensor([1.0, 1.0])]}
 print()
 print(dataset)
 print(dataset[0])
@@ -55,8 +55,8 @@ def GCN_Kfold(dataset, labels, batch, param_grid, skf,
     for class_weights in param_grid['class_weights']:
         if savfig:
             # dataset + parcels + combat + upsampling + loss func + n_epoch
-            filename = f'{data_name}_{parcel}pc_cbt{"O" if CombatExists else"X"}_up{"O" if UpsamplingExists else "X"}_{class_weights}_{n_epoch}epc'
-            #sys.stdout = open(f'results/stdouts/new/{filename}.txt', 'w')
+            filename = f'{data_name}_{parcel}pc_cbt{"O" if CombatExists else"X"}(cvr X)_up{"O" if UpsamplingExists else "X"}_{class_weights}_{n_epoch}epc'
+            sys.stdout = open(f'results/stdouts/new/{filename}.txt', 'w')
         
         eval_metrics = np.zeros((n_splits, n_metrics))
         train_metrics = np.zeros((n_splits, n_metrics))
@@ -181,7 +181,8 @@ def GCN_Kfold(dataset, labels, batch, param_grid, skf,
 #     GCN_Kfold(dataset, labels, batch, param_grid, skf, 
 #                     CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, parcel,data_name,
 #                     device, savfig=True)
+
 UpsamplingExists=False
 GCN_Kfold(dataset, labels, batch, param_grid, skf, 
-                    CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, parcel,data_name,
-                    device, savfig=True)
+                CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, parcel,data_name,
+                device, savfig=True)
