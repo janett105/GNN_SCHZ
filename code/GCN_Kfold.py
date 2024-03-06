@@ -24,7 +24,7 @@ n_epoch = 50
 # 설정값
 #th=0.5
 #UpsamplingExists = True
-CombatExists = True
+CombatExists = False
 parcel = 116
 data_name='data01'
 
@@ -37,8 +37,8 @@ batch = batch.map({'UCLA_CNP' : 0, 'COBRE' : 1}).values
 skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=0)
 
 balanced_class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(labels), y=labels)
-#param_grid = {'class_weights':[torch.tensor([1.0, 1.0])]}
-param_grid = {'class_weights':[torch.tensor(balanced_class_weights.astype(np.float32)), torch.tensor([1.0, 1.0])]}
+param_grid = {'class_weights':[torch.tensor([1.0, 1.0])]}
+#param_grid = {'class_weights':[torch.tensor(balanced_class_weights.astype(np.float32)), torch.tensor([1.0, 1.0])]}
 print()
 print(dataset)
 print(dataset[0])
@@ -96,9 +96,9 @@ def GCN_Kfold(dataset, labels, batch, param_grid, skf,
                 train_sampler = ImbalancedSampler(cbt_traindata_list)
                 train_loader = DataLoader(cbt_traindata_list, batch_size=64, sampler=train_sampler)
             else: 
-                train_loader = DataLoader(cbt_traindata_list, batch_size=64, shuffle=True)
-            val_loader = DataLoader(cbt_valdata_list, batch_size=64, shuffle=True) 
-            test_loader = DataLoader(cbt_testdata_list, batch_size=64, shuffle=True)
+                train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+            val_loader = DataLoader(val_dataset, batch_size=64, shuffle=True) 
+            test_loader = DataLoader(test_dataset, batch_size=64, shuffle=True)
 
             min_v_loss = np.inf
             history_loss={'epoch':[], 't_loss':[], 'tt_loss':[]}
