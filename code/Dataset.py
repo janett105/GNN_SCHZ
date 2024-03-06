@@ -21,7 +21,7 @@ class FCGraphDataset(InMemoryDataset):
     def raw_file_names(self):
         file_paths = sorted(list(Path(self.raw_dir).glob("*.npy")))
         return [str(file_path.name) for file_path in file_paths]
-    
+
     @property
     def processed_file_names(self):
         return ['data.pt']
@@ -33,25 +33,16 @@ class FCGraphDataset(InMemoryDataset):
         data_list=[]
         for filepath, y in zip(self.raw_paths, self.labels):
             y = torch.tensor(y)
-
             connectivity = np.array([[0,5,2,4,9],
                                      [5,0,7,10,3],
                                      [2,7,0,1,6],
                                      [4,10,1,0,8],
                                      [9,3,6,8,0]])
-            print()
-            print(connectivity)
             #connectivity = np.load(filepath)
             x = torch.from_numpy(connectivity).float()
-
             adj = compute_KNN_graph(connectivity)
             adj = torch.from_numpy(adj).float()
-            print()
-            print(np.round(adj,1))
             edge_index, edge_attr = dense_to_sparse(adj)
-            print()
-            print(edge_index)
-            print(np.round(edge_attr,1))
             data_list.append(Data(x=x, y=y, edge_index=edge_index, edge_attr=edge_attr))
 
         if self.pre_filter is not None:

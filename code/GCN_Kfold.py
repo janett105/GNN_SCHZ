@@ -176,7 +176,6 @@ def GCN_Kfold(dataset, labels, batch, param_grid, skf,
         if savfig:sys.stdout.close()
         return eval_metrics, train_metrics
 
-
 for i in range(2):
     UpsamplingExists=bool(i)
     GCN_Kfold(dataset, labels, batch, param_grid, skf, 
