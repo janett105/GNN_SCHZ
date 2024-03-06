@@ -9,10 +9,17 @@ def CombatHrm(cbt,
               val_dataset, val_batch,
               test_dataset, test_batch):
 
-    xarrays = torch.tensor([0]*6670)
+    xarrays_list = []
+
     for train_data in train_dataset:
-        xarray = train_data.x[np.triu_indices_from(train_data.x, k=1)]
-        xarrays = torch.cat([xarrays, xarray], dim=0)
+        x = train_data.x
+
+        rows, cols = torch.triu_indices(x.size(0), x.size(1), offset=1)
+        xarray = x[rows, cols]
+
+        xarrays_list.append(xarray)
+    xarrays = torch.cat(xarrays_list, dim=0)
+    print(xarrays.shape)
     cbt_x=cbt.fit_transform(data=xarrays, sites=train_batch.reshape(-1,1),  **{'discrete_covariates': train_labels.reshape(-1,1)})
     cbt_adj = compute_KNN_graph(torch.from_numpy(cbt_x))
     cbt_adj = torch.from_numpy(cbt_adj).float()
