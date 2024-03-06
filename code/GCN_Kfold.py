@@ -86,7 +86,7 @@ def GCN_Kfold(dataset, labels, batch, param_grid, skf,
                 # Combat harmonization
                 cbt=CombatModel()
 
-                CombatHrm(cbt,
+                CombatHrm(cbt,parcel,
                         train_dataset, train_batch, train_labels,
                         val_dataset, val_batch,
                         test_dataset, test_batch)
