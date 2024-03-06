@@ -24,6 +24,8 @@ n_epoch = 50
 CombatExists = False
 parcel = 116
 data_name='data01'
+UpsamplingExists = True
+
 
 dataset = FCGraphDataset('data')
 whole = pd.read_csv(f'data/raw/Labels_{parcel}parcels.csv')
@@ -34,8 +36,8 @@ batch = batch.map({'UCLA_CNP' : 0, 'COBRE' : 1}).values
 skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=0)
 
 balanced_class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(labels), y=labels)
-param_grid = {'class_weights':[torch.tensor(balanced_class_weights.astype(np.float32)), torch.tensor([1.0, 1.0])]}
-print()
+param_grid = {'class_weights':[torch.tensor(balanced_class_weights.astype(np.float32))]}
+
 print(dataset)
 print(dataset[0])
 print("====================================================================")
@@ -69,7 +71,7 @@ for datarate in [0.2, 0.4, 0.6, 0.8, 1]:
     if datarate==1:
         testeval, traineval = GCN_Kfold(dataset, labels, batch, param_grid, skf, 
                        CombatExists, UpsamplingExists, n_epoch, n_splits, n_metrics, k_order, parcel, data_name,
-                       device, savfig=True)
+                       device, savfig=False)
     else:
         idx=np.arange(len(dataset))
         _, lenidx, _, lenlabels, _, lenbatch  = train_test_split(idx, labels, batch, 
@@ -117,6 +119,6 @@ for metname in ['sen', 'spe','bac']:
     plt.ylim([0, 1.03])
     plt.tight_layout()
 
-    createDirectory(f'results/figs/new/{filename}/LearningCrv/')
-    plt.savefig(f'results/figs/new/{filename}/LearningCrv/{metname}.png')
+    createDirectory(f'LearningCrv')
+    plt.savefig(f'LearningCrv/{metname}.png')
     plt.show()
