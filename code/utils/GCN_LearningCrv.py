@@ -18,14 +18,11 @@ n_splits = 10
 n_metrics = 3  
 k_order = 6
 n_epoch = 50
-# 설정값
 #th=0.5
-#UpsamplingExists = True
 CombatExists = False
 parcel = 116
 data_name='data01'
 UpsamplingExists = True
-
 
 dataset = FCGraphDataset('data')
 whole = pd.read_csv(f'data/raw/Labels_{parcel}parcels.csv')
@@ -37,10 +34,6 @@ skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=0)
 
 balanced_class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(labels), y=labels)
 param_grid = {'class_weights':[torch.tensor(balanced_class_weights.astype(np.float32))]}
-
-print(dataset)
-print(dataset[0])
-print("====================================================================")
 
 # HC와 SCZ환자의 site effect 비율
 # HC, SCZ = HC_SCZ_SiteEffectExists()
@@ -66,7 +59,7 @@ trainlrndata= {'n_data':[one, one*2, one*3, one*4, len(dataset)],
                'bac_std':[]}
 
 for datarate in [0.2, 0.4, 0.6, 0.8, 1]:
-    print("data rate : ", datarate)
+    #print("data rate : ", datarate)
 
     if datarate==1:
         testeval, traineval = GCN_Kfold(dataset, labels, batch, param_grid, skf, 

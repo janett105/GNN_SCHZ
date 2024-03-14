@@ -95,14 +95,14 @@ def GCN_test(model, loader, weight, len_val_dataset, n_fold, epoch, device='cpu'
         pred.append(output.argmax(dim=1))
         label.append(data.y)
         #score.append(func.softmax(output, dim=1)[:, 1]) 
-        print(f'{n_fold+1} fold | {epoch} epoch | predict_prob : {output}')
+        #print(f'{n_fold+1} fold | {epoch} epoch | predict_prob : {output}')
 
     y_pred = torch.cat(pred, dim=0).cpu().detach().numpy()
     y_true = torch.cat(label, dim=0).cpu().detach().numpy()
     #y_score = torch.cat(score, dim=0).cpu().detach().numpy()
 
-    print(f'{n_fold+1} fold | {epoch} epoch | y_true : {y_true}')
-    print(f'{n_fold+1} fold | {epoch} epoch | y_pred : {y_pred}')
+    # print(f'{n_fold+1} fold | {epoch} epoch | y_true : {y_true}')
+    # print(f'{n_fold+1} fold | {epoch} epoch | y_pred : {y_pred}')
 
     tn, fp, fn, tp = confusion_matrix(y_true, y_pred, labels=[0,1]).ravel()
     epoch_sen = recall_score(y_true, y_pred)

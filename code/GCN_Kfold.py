@@ -69,7 +69,7 @@ def GCN_Kfold(dataset, labels, batch, param_grid, skf,
 
         for n_fold, (train_val, test) in enumerate(skf.split(labels, labels)):  
             if isnan==True:break
-            print(f'=============== {n_fold+1} fold ===============')
+            #print(f'=============== {n_fold+1} fold ===============')
             model = GCN(dataset.num_features, dataset.num_classes, k_order).to(device)
             optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)
             
@@ -93,8 +93,8 @@ def GCN_Kfold(dataset, labels, batch, param_grid, skf,
                                                                                     test_dataset, test_batch, test_labels)
 
             if UpsamplingExists==True:
-                train_sampler = ImbalancedSampler(cbt_traindata_list)
-                train_loader = DataLoader(cbt_traindata_list, batch_size=64, sampler=train_sampler)
+                train_sampler = ImbalancedSampler(train_dataset)
+                train_loader = DataLoader(train_dataset, batch_size=64, sampler=train_sampler)
             else: 
                 train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
             val_loader = DataLoader(val_dataset, batch_size=64, shuffle=True) 
@@ -115,7 +115,7 @@ def GCN_Kfold(dataset, labels, batch, param_grid, skf,
 
                 test_sen, test_spe, test_bac, _ = GCN_test(model, test_loader, class_weights, len(val_dataset), n_fold, epoch, device)
 
-                print(f'train loss : {t_loss} , val loss : {v_loss}')
+                #print(f'train loss : {t_loss} , val loss : {v_loss}')
                 history_loss['epoch'].append(epoch)
                 history_loss['t_loss'].append(t_loss)
                 history_loss['tt_loss'].append(v_loss)
@@ -137,9 +137,9 @@ def GCN_Kfold(dataset, labels, batch, param_grid, skf,
                     if savfig:
                         createDirectory(f'results/best_models/new/{filename}')
                         torch.save(model.state_dict(), f'results/best_models/new/{filename}/{n_fold + 1}fold.pth')
-                        print('CV: {:03d}, Epoch: {:03d}, Val Loss: {:.5f}, Val BAC: {:.5f}, Test BAC: {:.5f}, TEST SEN: {:.5f}, '
-                            'TEST SPE: {:.5f}'.format(n_fold + 1, epoch + 1, min_v_loss, best_val_bac, best_test_bac,
-                                                        best_test_sen, best_test_spe))
+                        # print('CV: {:03d}, Epoch: {:03d}, Val Loss: {:.5f}, Val BAC: {:.5f}, Test BAC: {:.5f}, TEST SEN: {:.5f}, '
+                        #     'TEST SPE: {:.5f}'.format(n_fold + 1, epoch + 1, min_v_loss, best_val_bac, best_test_bac,
+                        #                                 best_test_sen, best_test_spe))
 
                 #thresholds_epochs = [[]]*n_epoch
                 #thresholds_epochs[epoch] = ROC_threshold(v_true, v_score, test_true, test_score)
@@ -159,19 +159,19 @@ def GCN_Kfold(dataset, labels, batch, param_grid, skf,
             historys_spe.append(history_spe)
             historys_bac.append(history_bac)
 
-        if (isnan==False) and (savfig):
-            # 각 fold에서 val_loss가 최소였던 한 epoch 성능에서의 10fold 평균, 최고라고 기대되는 test 성능끼리의 평균
-            eval_df = pd.DataFrame(eval_metrics)
-            eval_df.columns = ['SEN', 'SPE', 'BAC']
-            eval_df.index = ['Fold_%02i' % (i + 1) for i in range(skf.n_splits)]
-            print(eval_df)
-            print('Average Sensitivity: %.4f+-%.4f' % (eval_metrics[:, 0].mean(), eval_metrics[:, 0].std()))
-            print('Average Specificity: %.4f+-%.4f' % (eval_metrics[:, 1].mean(), eval_metrics[:, 1].std()))
-            print('Average Balanced Accuracy: %.4f+-%.4f' % (eval_metrics[:, 2].mean(), eval_metrics[:, 2].std()))
-            #print(thresholds)
-            vizMetrics(historys_loss, historys_sen, historys_spe, historys_bac, filename)
-        else:
-            print('nan ending...')
+        # if (isnan==False) and (savfig):
+        #     # 각 fold에서 val_loss가 최소였던 한 epoch 성능에서의 10fold 평균, 최고라고 기대되는 test 성능끼리의 평균
+        #     eval_df = pd.DataFrame(eval_metrics)
+        #     eval_df.columns = ['SEN', 'SPE', 'BAC']
+        #     eval_df.index = ['Fold_%02i' % (i + 1) for i in range(skf.n_splits)]
+        #     print(eval_df)
+        #     print('Average Sensitivity: %.4f+-%.4f' % (eval_metrics[:, 0].mean(), eval_metrics[:, 0].std()))
+        #     print('Average Specificity: %.4f+-%.4f' % (eval_metrics[:, 1].mean(), eval_metrics[:, 1].std()))
+        #     print('Average Balanced Accuracy: %.4f+-%.4f' % (eval_metrics[:, 2].mean(), eval_metrics[:, 2].std()))
+        #     #print(thresholds)
+        #     vizMetrics(historys_loss, historys_sen, historys_spe, historys_bac, filename)
+        # else:
+        #     print('nan ending...')
 
         if savfig:sys.stdout.close()
         return eval_metrics, train_metrics
