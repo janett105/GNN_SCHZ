@@ -29,7 +29,7 @@ def create_FC(subj_dir, subj_id, t_r,
         wm_csf="basic",
         global_signal="basic",
         scrub=5,
-        #fd_threshold=0.5,
+        fd_threshold=0.5,
         std_dvars_threshold=1.5,
     ) 
 
@@ -63,8 +63,8 @@ def create_FC(subj_dir, subj_id, t_r,
     time_series = masker.fit_transform(fmriimg, 
                                     confounds=confounds, sample_mask=sample_mask)
     
-    # print(f'resampling 전 atlas voxel size : {atlasimg.header.get_zooms()}')
-    # print(f'resampling 전 mask voxel size : {maskimg.header.get_zooms()}')
+    print(f'resampling 전 atlas voxel size : {atlasimg.header.get_zooms()}')
+    print(f'resampling 전 mask voxel size : {maskimg.header.get_zooms()}')
     # mask the labimg so that there are no regions that dont have data 
     if space == 'data':
         # resample_to_image(source, target)
@@ -74,8 +74,8 @@ def create_FC(subj_dir, subj_id, t_r,
     else:
         resamplabs = resample_to_img(atlasimg,atlasimg,interpolation='nearest')
         resampmask = resample_to_img(maskimg,atlasimg,interpolation='nearest')   
-    # print(f'resampling 후 atlas voxel size : {resamplabs.header.get_zooms()}')
-    # print(f'resampling 후 mask voxel size : {resampmask.header.get_zooms()}')
+    print(f'resampling 후 atlas voxel size : {resamplabs.header.get_zooms()}')
+    print(f'resampling 후 mask voxel size : {resampmask.header.get_zooms()}')
 
     # mask
     resamplabsmasked = apply_mask(resamplabs,resampmask)
@@ -110,7 +110,7 @@ def create_FC(subj_dir, subj_id, t_r,
         FC_df = get_con_df(FC, reglabs)
 
         new_labels = atlas.labels[reginorigparc]
-        viz_correlation_matrix(FC, new_labels)
+        #viz_correlation_matrix(FC, new_labels)
     
     return FC_df, time_series, reginparc
 
@@ -138,21 +138,20 @@ def makeFC(subj_dir, dataset_name, t_r):
 
     error_subjects=[]
     for subj_id in subj_list:
-        if subj_id!='sub-10159': continue
-        # try :
-        print(f'==============={subj_id}=======================')
-        FC_df, time_series, reginparc = create_FC (subj_dir, subj_id, t_r,
-                        dtr=True, stdz="zscore_sample", smth = 4.0, cnfstdz = True, confs=["motion","scrub", "wm_csf","global_signal"], connstdz = True,
-                        conntype='correlation', space='data', savets=False, nomat=False)
-        np.save(f'D:/MRI/{dataset_name}/preprocess/fmriprep/FC/Schaefer2018_100parcels_7networks_1mm/FC100_{subj_id}.npy',FC_df.values)
-        # except ValueError as e :
-        #     error_subjects.append([{subj_id},e])
-        # except FileNotFoundError as e:
-        #     error_subjects.append([{subj_id},e])
-    
+        if subj_id =='sub-10189': continue
+        if subj_id =='sub-50004': continue
+        try:
+            print(f'==============={subj_id}=======================')
+            FC_df, time_series, reginparc = create_FC (subj_dir, subj_id, t_r,
+                            dtr=True, stdz="zscore_sample", smth = 4.0, cnfstdz = True, confs=["motion","scrub", "wm_csf","global_signal"], connstdz = True,
+                            conntype='correlation', space='data', savets=False, nomat=False)
+            np.save(f'D:/MRI/{dataset_name}/preprocess/fmriprep/FC/Schaefer2018_100parcels_7networks_1mm/FC100_{subj_id}.npy',FC_df.values)
+        except FileNotFoundError as e: error_subjects.append((subj_id, e))
+        except ValueError as e: error_subjects.append((subj_id, e))
     print(error_subjects)
 
-dataset_name = 'UCLA_CNP'
+#dataset_name = 'UCLA_CNP'
+dataset_name = 'COBRE'
 subj_dir = f'D:/MRI/{dataset_name}/preprocess/fmriprep/derivatives'  # 전처리된 fmri image가 저장된 경로
 t_r=2.0
 makeFC(subj_dir, dataset_name, t_r) # Atlas : Schaefer2018_100parcels_7networks_1mm

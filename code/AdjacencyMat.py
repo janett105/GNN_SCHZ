@@ -42,3 +42,8 @@ def adjacency(dist, idx):
     assert np.abs(W - W.T).mean() < 1e-10
     assert type(W) is csr.csr_matrix
     return W.todense()
+
+if __name__=='__main__':
+    connectivity = np.load(filepath)
+    adj = compute_KNN_graph(connectivity)
+    adj = torch.from_numpy(adj).float()
